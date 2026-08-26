@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
+from app.routers.catalog import router as catalog_router
 
 settings = get_settings()
 
@@ -20,6 +21,8 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+app.include_router(catalog_router)
 
 
 @app.get("/healthz", tags=["meta"])
