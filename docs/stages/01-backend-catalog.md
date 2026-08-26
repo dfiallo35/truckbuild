@@ -1,5 +1,7 @@
 # Stage 1 — Backend: catalog, pricing, and rules
 
+> **Status: complete.** Checkpoint verified 2026-08-26.
+
 **Goal:** the catalog exists in Postgres, is served over HTTP, and can be priced and validated by pure,
 well-tested functions.
 
@@ -37,6 +39,18 @@ curl -s localhost:8000/v1/catalog | jq '.platforms[].slug'
 docker compose exec api python -m app.seed   # re-run: no duplicates
 docker compose exec api pytest -q
 ```
+
+## Notes from the build
+
+- **Autogenerate emitted `sqlmodel.sql.sqltypes.AutoString` without importing `sqlmodel`**, and its
+  `downgrade()` dropped the tables using each Postgres enum type without dropping the enum types
+  themselves — a second `upgrade()` after a `downgrade()` would then fail because the type already
+  exists. Both had to be fixed by hand; see `.claude/skills/alembic-migration`.
+- **The container only bind-mounts `./api`**, so the repo-root `fixtures/pricing-cases.json` (kept
+  outside `api/` and `web/` on purpose, per `.claude/skills/pricing-mirror`) was invisible to
+  `docker compose exec api pytest`. Fixed with a second bind mount,
+  `./fixtures:/srv/fixtures:ro`, in `docker-compose.yml`, and `tests/conftest.py` checks both the
+  host and the container path.
 
 ## Done when
 

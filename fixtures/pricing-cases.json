@@ -1,0 +1,80 @@
+{
+  "cases": [
+    {
+      "name": "base build, no options",
+      "platform": "bristlecone",
+      "selected": [],
+      "expected_total_cents": 21450000,
+      "expected_violations": []
+    },
+    {
+      "name": "crew cab and full galley add their deltas",
+      "platform": "bristlecone",
+      "selected": ["cab-crew", "galley-full"],
+      "expected_total_cents": 22950000,
+      "expected_violations": []
+    },
+    {
+      "name": "winch without heavy bumper violates requires",
+      "platform": "bristlecone",
+      "selected": ["winch-12000"],
+      "expected_total_cents": null,
+      "expected_violations": [
+        { "kind": "requires", "option": "winch-12000", "needs": "bumper-heavy" }
+      ]
+    },
+    {
+      "name": "winch with heavy bumper satisfies requires",
+      "platform": "bristlecone",
+      "selected": ["winch-12000", "bumper-heavy"],
+      "expected_total_cents": 22010000,
+      "expected_violations": []
+    },
+    {
+      "name": "600Ah lithium bank with compact galley violates excludes",
+      "platform": "bristlecone",
+      "selected": ["lithium-600ah", "galley-compact"],
+      "expected_total_cents": null,
+      "expected_violations": [
+        { "kind": "excludes", "option": "lithium-600ah", "conflicts_with": "galley-compact" }
+      ]
+    },
+    {
+      "name": "600Ah lithium bank with full galley satisfies excludes",
+      "platform": "bristlecone",
+      "selected": ["lithium-600ah", "galley-full"],
+      "expected_total_cents": 23950000,
+      "expected_violations": []
+    },
+    {
+      "name": "rooftop tent with maximum solar array violates excludes",
+      "platform": "bristlecone",
+      "selected": ["rooftop-tent", "solar-max"],
+      "expected_total_cents": null,
+      "expected_violations": [
+        { "kind": "excludes", "option": "rooftop-tent", "conflicts_with": "solar-max" }
+      ]
+    },
+    {
+      "name": "rooftop tent with standard solar array satisfies excludes",
+      "platform": "bristlecone",
+      "selected": ["rooftop-tent", "solar-standard"],
+      "expected_total_cents": 22010000,
+      "expected_violations": []
+    },
+    {
+      "name": "ironwood base build, no options",
+      "platform": "ironwood",
+      "selected": [],
+      "expected_total_cents": 16890000,
+      "expected_violations": []
+    },
+    {
+      "name": "sentinel base build, no options",
+      "platform": "sentinel",
+      "selected": [],
+      "expected_total_cents": 23200000,
+      "expected_violations": []
+    }
+  ]
+}

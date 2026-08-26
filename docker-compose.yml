@@ -33,6 +33,9 @@ services:
       # from being shadowed by the host directory.
       - ./api:/srv
       - /srv/.venv
+      # The shared pricing/rules fixture lives at the repo root (see .claude/skills/pricing-mirror)
+      # so pytest can find it at API_ROOT/fixtures from inside the container too.
+      - ./fixtures:/srv/fixtures:ro
     depends_on:
       db:
         condition: service_healthy

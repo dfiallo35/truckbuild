@@ -1,0 +1,456 @@
+# Versioned seed content for the TruckBuild catalog. Loaded idempotently (upsert by slug) by
+# app/seed.py. Postgres remains the runtime source of truth; this file is the reviewable,
+# version-controlled starting point for it.
+#
+# All names, prices, and specs are demo placeholders — see docs/domain-model.md.
+
+platforms:
+  - slug: bristlecone
+    name: Bristlecone
+    purpose: Expedition / overland habitat
+    chassis_basis: Ram 5500 4x4 (regular / crew cab)
+    base_price_cents: 21450000
+    spec_highlights:
+      - 4x4 drivetrain, 12,000 lb GVWR
+      - Dual diesel fuel tanks, 800 mi range
+      - Insulated composite habitat shell
+    standard_equipment:
+      - LED perimeter lighting
+      - Underbody skid plates
+      - 40 gal fresh water tank
+    hero_image:
+      url: /images/bristlecone/hero.jpg
+      alt_text: Bristlecone expedition truck parked on a desert ridge at dusk
+    gallery:
+      - url: /images/bristlecone/gallery-1.jpg
+        alt_text: Bristlecone habitat interior with full galley
+      - url: /images/bristlecone/gallery-2.jpg
+        alt_text: Bristlecone rear three-quarter view with rooftop tent deployed
+    option_groups:
+      - slug: cab-chassis
+        name: Cab & Chassis
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: cab-regular
+            name: Regular Cab
+            price_delta_cents: 0
+            description: Two-door cab, maximum habitat footprint.
+          - slug: cab-crew
+            name: Crew Cab
+            price_delta_cents: 850000
+            description: Four-door cab with rear bench seating.
+
+      - slug: habitat-shell
+        name: Habitat Shell
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: shell-standard
+            name: Standard Composite Shell
+            price_delta_cents: 0
+            description: Insulated composite panel shell, standard height.
+          - slug: shell-extended
+            name: Extended Composite Shell
+            price_delta_cents: 1200000
+            description: Raised roofline for standing headroom throughout.
+
+      - slug: interior-layout
+        name: Interior Layout
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: galley-compact
+            name: Compact Galley
+            price_delta_cents: 0
+            description: Single-burner galley with under-counter fridge.
+          - slug: galley-full
+            name: Full Galley
+            price_delta_cents: 650000
+            description: Two-burner galley, full-size fridge, and dry storage.
+          - slug: layout-bunk
+            name: Bunk Layout
+            price_delta_cents: 480000
+            description: Fixed bunk with under-bed storage, no galley.
+
+      - slug: power-system
+        name: Power System
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: lithium-300ah
+            name: 300 Ah Lithium Bank
+            price_delta_cents: 950000
+            description: 300 Ah lithium battery bank with 2000 W inverter.
+          - slug: lithium-600ah
+            name: 600 Ah Lithium Bank
+            price_delta_cents: 1850000
+            description: 600 Ah lithium battery bank with 3000 W inverter.
+          - slug: solar-standard
+            name: Standard Solar Array (200 W)
+            price_delta_cents: 180000
+            description: Roof-mounted 200 W solar array.
+          - slug: solar-max
+            name: Maximum Solar Array (600 W)
+            price_delta_cents: 420000
+            description: Roof-mounted 600 W solar array, covers most of the roofline.
+
+      - slug: water-thermal
+        name: Water & Thermal
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: water-80gal
+            name: 80 gal Fresh Water Upgrade
+            price_delta_cents: 320000
+            description: Upgrades the standard 40 gal tank to 80 gal.
+          - slug: heater-diesel
+            name: Diesel-Fired Cabin Heater
+            price_delta_cents: 275000
+            description: Combustion heater independent of the engine.
+          - slug: ac-rooftop
+            name: Rooftop Air Conditioning
+            price_delta_cents: 410000
+            description: Low-profile rooftop AC unit.
+
+      - slug: suspension-tires
+        name: Suspension & Tires
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: suspension-standard
+            name: Standard Suspension, All-Terrain Tires
+            price_delta_cents: 0
+            description: Factory suspension with all-terrain tires.
+          - slug: suspension-longtravel
+            name: Long-Travel Suspension, All-Terrain Tires
+            price_delta_cents: 680000
+            description: Long-travel coilover suspension, all-terrain tires.
+          - slug: suspension-longtravel-mt
+            name: Long-Travel Suspension, Mud-Terrain Tires
+            price_delta_cents: 890000
+            description: Long-travel coilover suspension, mud-terrain tires.
+
+      - slug: recovery-protection
+        name: Recovery & Protection
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: bumper-standard
+            name: Standard Steel Bumper
+            price_delta_cents: 0
+            description: Standard-duty steel front bumper.
+          - slug: bumper-heavy
+            name: Heavy-Duty Winch Bumper
+            price_delta_cents: 220000
+            description: Reinforced bumper rated for a winch mount.
+          - slug: winch-12000
+            name: 12,000 lb Winch
+            price_delta_cents: 340000
+            description: Electric winch, 12,000 lb capacity. Requires the heavy-duty bumper.
+          - slug: rock-sliders
+            name: Rock Sliders
+            price_delta_cents: 95000
+            description: Bolt-on rock sliders protecting the rocker panels.
+
+      - slug: roof-storage
+        name: Roof & Storage
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: rooftop-tent
+            name: Rooftop Tent
+            price_delta_cents: 380000
+            description: Hard-shell rooftop tent, sleeps two. Conflicts with the maximum solar array.
+          - slug: roof-rack-basic
+            name: Roof Rack
+            price_delta_cents: 60000
+            description: Low-profile roof rack for gear.
+
+      - slug: exterior-finish
+        name: Exterior Finish
+        selection_mode: single
+        required: true
+        display_style: swatch
+        options:
+          - slug: finish-satin-black
+            name: Satin Black
+            price_delta_cents: 0
+            description: Satin black finish over the composite shell.
+          - slug: finish-desert-tan
+            name: Desert Tan
+            price_delta_cents: 0
+            description: Desert tan finish over the composite shell.
+          - slug: finish-forest-green
+            name: Forest Green
+            price_delta_cents: 0
+            description: Forest green finish over the composite shell.
+
+  - slug: ironwood
+    name: Ironwood
+    purpose: Mobile workshop & service body
+    chassis_basis: Ford F-550 (crew cab)
+    base_price_cents: 16890000
+    spec_highlights:
+      - 19,500 lb GVWR service chassis
+      - Compartmentalized aluminum service body
+      - 12,000 lb hydraulic lift gate compatible
+    standard_equipment:
+      - Interior LED work lighting
+      - Grounded welding receptacle
+      - Steel diamond-plate running boards
+    hero_image:
+      url: /images/ironwood/hero.jpg
+      alt_text: Ironwood service truck parked at a job site
+    gallery:
+      - url: /images/ironwood/gallery-1.jpg
+        alt_text: Ironwood service body compartments open, tools racked
+    option_groups:
+      - slug: cab-chassis
+        name: Cab & Chassis
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: chassis-4x2
+            name: 4x2 Chassis
+            price_delta_cents: 0
+            description: Rear-wheel-drive service chassis.
+          - slug: chassis-4x4
+            name: 4x4 Chassis
+            price_delta_cents: 620000
+            description: Four-wheel-drive service chassis for job-site access.
+
+      - slug: service-body
+        name: Service Body Configuration
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: body-standard
+            name: Standard Compartment Body
+            price_delta_cents: 0
+            description: Six-compartment aluminum service body.
+          - slug: body-extended
+            name: Extended Compartment Body
+            price_delta_cents: 540000
+            description: Ten-compartment aluminum service body with rear shelving.
+
+      - slug: crane-lifting
+        name: Crane & Lifting
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: crane-3200lb
+            name: 3,200 lb Articulating Crane
+            price_delta_cents: 1450000
+            description: Hydraulic articulating crane mounted behind the cab.
+          - slug: liftgate-hydraulic
+            name: Hydraulic Lift Gate
+            price_delta_cents: 380000
+            description: 1,500 lb capacity hydraulic lift gate.
+
+      - slug: power-system
+        name: Power System
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: generator-onboard
+            name: Onboard Generator (6 kW)
+            price_delta_cents: 520000
+            description: PTO-driven 6 kW onboard generator.
+          - slug: inverter-3000w
+            name: 3,000 W Inverter
+            price_delta_cents: 210000
+            description: Chassis-battery-fed inverter for shop tools.
+
+      - slug: storage-compartments
+        name: Storage & Compartments
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: shelving-adjustable
+            name: Adjustable Shelving Package
+            price_delta_cents: 175000
+            description: Adjustable steel shelving across all compartments.
+          - slug: drawer-units
+            name: Locking Drawer Units
+            price_delta_cents: 260000
+            description: Locking pull-out drawer units for small parts.
+
+      - slug: lighting-safety
+        name: Lighting & Safety
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: scene-lighting
+            name: LED Scene Lighting
+            price_delta_cents: 145000
+            description: Perimeter scene lighting for night work.
+          - slug: arrow-board
+            name: Rear Arrow Board
+            price_delta_cents: 320000
+            description: Solar rear-mounted arrow board for roadside work.
+
+      - slug: exterior-finish
+        name: Exterior Finish
+        selection_mode: single
+        required: true
+        display_style: swatch
+        options:
+          - slug: finish-fleet-white
+            name: Fleet White
+            price_delta_cents: 0
+            description: Fleet white finish.
+          - slug: finish-safety-orange
+            name: Safety Orange
+            price_delta_cents: 45000
+            description: High-visibility safety orange finish.
+
+  - slug: sentinel
+    name: Sentinel
+    purpose: Response & command
+    chassis_basis: Ford F-600 (crew cab)
+    base_price_cents: 23200000
+    spec_highlights:
+      - 22,000 lb GVWR command chassis
+      - Walk-in command module
+      - Roof-mounted mast compatible
+    standard_equipment:
+      - Interior command console mounts
+      - Shoreline power inlet
+      - Roof-mounted light bar
+    hero_image:
+      url: /images/sentinel/hero.jpg
+      alt_text: Sentinel command truck staged at night with light bar on
+    gallery:
+      - url: /images/sentinel/gallery-1.jpg
+        alt_text: Sentinel command module interior with console seating
+    option_groups:
+      - slug: cab-chassis
+        name: Cab & Chassis
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: cab-crew-standard
+            name: Crew Cab
+            price_delta_cents: 0
+            description: Standard crew cab configuration.
+          - slug: cab-crew-extended
+            name: Extended Crew Cab
+            price_delta_cents: 410000
+            description: Extended crew cab with additional legroom.
+
+      - slug: command-module
+        name: Command Module
+        selection_mode: single
+        required: true
+        display_style: card
+        options:
+          - slug: module-standard
+            name: Standard Command Module
+            price_delta_cents: 0
+            description: Walk-in module with two console stations.
+          - slug: module-extended
+            name: Extended Command Module
+            price_delta_cents: 1650000
+            description: Walk-in module with four console stations.
+
+      - slug: communications
+        name: Communications
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: mast-33ft
+            name: 33 ft Pneumatic Mast
+            price_delta_cents: 980000
+            description: Roof-mounted pneumatic mast for antennas and cameras.
+          - slug: radio-suite
+            name: Multi-Band Radio Suite
+            price_delta_cents: 720000
+            description: Cross-banded multi-agency radio suite.
+
+      - slug: power-system
+        name: Power System
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: generator-onboard-10kw
+            name: Onboard Generator (10 kW)
+            price_delta_cents: 780000
+            description: PTO-driven 10 kW onboard generator.
+          - slug: shoreline-transfer
+            name: Automatic Shoreline Transfer Switch
+            price_delta_cents: 165000
+            description: Automatic switch between shore power and generator.
+
+      - slug: lighting-warning
+        name: Lighting & Warning
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: lightbar-full
+            name: Full-Length Light Bar
+            price_delta_cents: 310000
+            description: Full-length roof-mounted LED light bar.
+          - slug: scene-lighting-perimeter
+            name: Perimeter Scene Lighting
+            price_delta_cents: 145000
+            description: Perimeter-mounted scene lighting.
+
+      - slug: storage-racking
+        name: Storage & Racking
+        selection_mode: multi
+        required: false
+        display_style: toggle
+        options:
+          - slug: equipment-racking
+            name: Equipment Racking Package
+            price_delta_cents: 240000
+            description: Racking for radios, batteries, and field gear.
+          - slug: exterior-compartments
+            name: Exterior Storage Compartments
+            price_delta_cents: 310000
+            description: Lockable exterior compartments along both sides.
+
+      - slug: exterior-finish
+        name: Exterior Finish
+        selection_mode: single
+        required: true
+        display_style: swatch
+        options:
+          - slug: finish-command-white
+            name: Command White
+            price_delta_cents: 0
+            description: Command white finish.
+          - slug: finish-tactical-black
+            name: Tactical Black
+            price_delta_cents: 65000
+            description: Tactical black finish.
+
+rules:
+  - subject: winch-12000
+    relation: requires
+    object: bumper-heavy
+  - subject: lithium-600ah
+    relation: excludes
+    object: galley-compact
+  - subject: rooftop-tent
+    relation: excludes
+    object: solar-max
