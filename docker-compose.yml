@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: truckbuild
+      POSTGRES_PASSWORD: truckbuild
+      POSTGRES_DB: truckbuild
+    ports:
+      # Published on 5433 so a Postgres already running on the host keeps 5432.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U truckbuild -d truckbuild"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./api
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      DATABASE_URL: postgresql+psycopg://truckbuild:truckbuild@db:5432/truckbuild
+      WEB_BASE_URL: http://localhost:3000
+      ENVIRONMENT: development
+    env_file:
+      - path: .env
+        required: false
+    ports:
+      - "8000:8000"
+    volumes:
+      # Source is bind-mounted for hot reload; the anonymous volume keeps the image's .venv
+      # from being shadowed by the host directory.
+      - ./api:/srv
+      - /srv/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
