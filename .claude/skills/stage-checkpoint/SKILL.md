@@ -87,3 +87,12 @@ Only after everything passes, update both places that record status:
 If the stage surfaced something worth remembering — a tool that behaved unexpectedly, a workaround
 that was not obvious — add it under a "Notes from the build" heading in the stage file. Stage 0 does
 this, and those notes are the reason the port-5433 and BuildKit decisions are still understandable.
+
+## Then open the PR
+
+A passing checkpoint is the signal that the stage is ready for review, so finish by opening a pull
+request rather than leaving the work committed locally. Use the `open-pr` skill — the `gh` CLI is not
+installed here, so this goes through the GitHub MCP tools.
+
+The checkpoint output you just captured is the PR body's verification section. Carry it over as a
+table rather than summarizing it; the reviewer wants what the commands actually printed.
