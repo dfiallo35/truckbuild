@@ -14,7 +14,7 @@ type PlatformCardProps = {
 export function PlatformCard({ platform }: PlatformCardProps) {
   return (
     <Link
-      href={`/platforms/${platform.slug}`}
+      href={`/builds/${platform.slug}`}
       className="group focus-visible:outline-accent flex flex-col gap-4 focus-visible:outline-2 focus-visible:outline-offset-4"
     >
       {platform.hero_image ? (
@@ -22,6 +22,7 @@ export function PlatformCard({ platform }: PlatformCardProps) {
           src={platform.hero_image.url}
           alt={platform.hero_image.alt_text}
           aspect="video"
+          sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
           className="transition-[filter] duration-300 group-hover:brightness-110"
         />
       ) : null}
