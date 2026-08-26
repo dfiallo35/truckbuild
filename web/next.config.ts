@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   // See docs/decisions.md.
   cacheComponents: true,
 
+  // This repo already has its own CLAUDE.md/AGENTS.md conventions (see docs/); don't let
+  // `next dev` regenerate its own stub copies in web/ on every run.
+  agentRules: false,
+
   images: {
     formats: ["image/avif", "image/webp"],
   },

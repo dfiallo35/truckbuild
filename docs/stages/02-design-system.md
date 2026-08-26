@@ -1,5 +1,7 @@
 # Stage 2 — Design system and app shell
 
+> **Status: complete.** Checkpoint verified 2026-08-26.
+
 **Goal:** the dark, cinematic visual direction exists as tokens, the shell is built, and the front end can
 read the catalog through a typed, cached client.
 
@@ -35,3 +37,20 @@ read the catalog through a typed, cached client.
 
 The site looks like a deliberate brand rather than a starter template, and no page component knows the API
 exists.
+
+## Notes from the build
+
+- Next.js 16's `next dev` auto-generates `AGENTS.md`/`CLAUDE.md` stub files in `web/` on every run
+  (pointing agents at `node_modules/next/dist/docs/` for breaking-change context). They'd shadow this
+  repo's own root `CLAUDE.md` conventions and get regenerated even if deleted, so they're disabled via
+  `agentRules: false` in `next.config.ts` rather than fought on every dev run.
+- The signature visual motif is a "spec plate" treatment for anything reading out a hard number
+  (`SpecList`, `PriceTag`): uppercase IBM Plex Mono labels with wide tracking, tabular numerals, hairline
+  dividers — it reads like a stenciled equipment placard rather than a generic stat block, and ties the
+  Oswald/Inter type pairing together.
+- The default gray used for the most-muted text token (`--color-ink-faint`) initially measured 3.64:1
+  against the canvas color — under the 4.5:1 AA floor for normal-size text even though it looked fine by
+  eye. Contrast ratios need computing, not eyeballing; see the WCAG numbers actually used in the palette.
+- `Footer`'s copyright year used `new Date().getFullYear()` directly, which Cache Components rejects
+  during prerendering as an unstable value. Fixed by moving it into its own `'use cache'` helper with
+  `cacheLife('days')` rather than opting the whole footer out of static rendering.

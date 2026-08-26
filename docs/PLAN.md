@@ -27,7 +27,7 @@ Each stage is independently reviewable and ends in a checkpoint that must pass b
 |---|---|---|
 | 0 | [Foundations](stages/00-foundations.md) — repo, scaffolds, Compose, CI | **Complete** |
 | 1 | [Backend catalog](stages/01-backend-catalog.md) — models, seed, catalog API, pricing & rules | **Complete** |
-| 2 | [Design system & shell](stages/02-design-system.md) — tokens, header/footer, API client | Not started |
+| 2 | [Design system & shell](stages/02-design-system.md) — tokens, header/footer, API client | **Complete** |
 | 3 | [Marketing pages](stages/03-marketing-pages.md) — home, platforms, purposes, SEO | Not started |
 | 4 | [Configurator](stages/04-configurator.md) — viewer, build state, live pricing, rules | Not started |
 | 5 | [Quote pipeline](stages/05-quote-pipeline.md) — server-authoritative submission, email | Not started |

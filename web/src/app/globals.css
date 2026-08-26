@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens for the dark, cinematic direction (docs/stages/02-design-system.md).
+ * Canvas is near-black, never pure black, so full-bleed photography and amber accents both
+ * hold contrast. Every component reads these via the Tailwind theme below -- none hardcodes
+ * a color.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-canvas: #0b0b0c;
+  --color-canvas-raised: #17171a;
+  --color-canvas-overlay: #1f1f23;
+  --color-border: #2a2a2e;
+  --color-border-strong: #3a3a3f;
+
+  --color-ink: #f2f0ec;
+  --color-ink-muted: #a3a2a0;
+  --color-ink-faint: #84837f;
+
+  --color-accent: #f5a524;
+  --color-accent-hover: #ffb648;
+  --color-accent-ink: #1a1206;
+
+  --font-display: var(--font-oswald), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-data: var(--font-mono-plex), ui-monospace, "SFMono-Regular", monospace;
+
+  --space-section: clamp(4rem, 8vw, 8rem);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-canvas: var(--color-canvas);
+  --color-canvas-raised: var(--color-canvas-raised);
+  --color-canvas-overlay: var(--color-canvas-overlay);
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--color-ink);
+  --color-ink-muted: var(--color-ink-muted);
+  --color-ink-faint: var(--color-ink-faint);
+
+  --color-accent: var(--color-accent);
+  --color-accent-hover: var(--color-accent-hover);
+  --color-accent-ink: var(--color-accent-ink);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-data: var(--font-data);
+
+  --spacing-section: var(--space-section);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-body);
 }
