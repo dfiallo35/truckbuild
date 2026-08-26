@@ -87,6 +87,17 @@ refresh-safe, back-button-correct builds with no database round trip.
 
 ## Working in this repo
 
+**`gh` is not installed on this machine.** GitHub operations — PRs, issues, checks, reviews — go
+through the GitHub MCP tools (`mcp__github__*`), which are deferred and must be loaded with
+`ToolSearch("select:...")` before they can be called. Repo coordinates are `dfiallo35/truckbuild`,
+base `main`. Ordinary git (branch, commit, push) still works through Bash.
+
+**A task is finished when its work is in a pull request**, not when it is committed locally. Run the
+CI-equivalent sweep, then open the PR with the `open-pr` skill. Branch off a freshly fetched
+`origin/main` — local `main` goes stale as soon as a PR is merged through the web UI — and never
+commit to `main` directly. If an open PR already covers the same concern, add a commit to it instead
+of opening a second one that will conflict.
+
 The build is split into eight staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
@@ -115,6 +126,7 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
 | `cache-and-revalidation` | Adding a catalog read, changing cache tags, or a catalog edit not reaching the site |
 | `alembic-migration` | Any change under `api/app/models/` |
 | `stage-checkpoint` | Verifying or closing out a stage, or running the CI-equivalent sweep |
+| `open-pr` | Opening or inspecting a PR — the last step of any task that produces committed work |
 
 ## Gotchas recorded from the build
 
