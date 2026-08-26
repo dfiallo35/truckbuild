@@ -37,7 +37,7 @@ being picked up and every later caching assumption is void.
 
 ## Notes from the build
 
-Three things bit during this stage and are worth remembering:
+Four things bit during this stage, or shortly after it, and are worth remembering:
 
 - **`RUN --mount=type=cache` requires BuildKit**, which is not enabled on every daemon. The Dockerfile
   avoids cache mounts so it builds under the classic builder too.
@@ -45,6 +45,11 @@ Three things bit during this stage and are worth remembering:
   already holds 5432. Inside the Compose network the API still uses `db:5432`.
 - **`pnpm install` times out on slow connections** and, when piped to `tail`, reports a misleading exit
   code. Use `--fetch-timeout 600000` and never mask the exit status of a command whose success matters.
+- **`defaults.run.working-directory` does not apply to `uses` steps**, only to `run` steps. The web CI
+  job therefore started `pnpm/action-setup` at the repo root, where there is no `package.json`, and it
+  failed with `No pnpm version is specified` despite `web/package.json` pinning `packageManager`. Fixed
+  with `package_json_file: web/package.json` rather than a duplicate `version:` input, which would drift
+  from the manifest and, if the two disagreed, fail with `Multiple versions specified`.
 
 ## Done when
 
