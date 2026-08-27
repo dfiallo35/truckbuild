@@ -44,10 +44,11 @@ export function BuildSheet({
     }))
     .filter((line) => line.options.length > 0);
 
-  const query = new URLSearchParams({
-    platform: platform.slug,
+  // The request form reads the same query string the configurator writes, so the build
+  // carries across without a round trip or a temporary record of it.
+  const requestHref = `/configurator/${platform.slug}/request?${new URLSearchParams({
     [BUILD_PARAM]: encodeSelection(platform, selected),
-  });
+  })}`;
 
   return (
     <dialog
@@ -158,7 +159,11 @@ export function BuildSheet({
           </button>
         ) : (
           <Link
-            href={`/contact?${query.toString()}`}
+            href={requestHref}
+            // A modal dialog holds the top layer until it is closed, and a client-side
+            // navigation out of it does not do that on its own -- the next page would render
+            // behind a backdrop that swallows every click.
+            onClick={() => dialog.current?.close()}
             className="bg-accent text-accent-ink hover:bg-accent-hover focus-visible:outline-accent font-display shrink-0 px-5 py-2.5 text-xs tracking-[0.1em] uppercase transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             Request this build

@@ -121,3 +121,99 @@ export async function fetchPlatform(slug: string): Promise<Platform | null> {
     throw error;
   }
 }
+
+/**
+ * Lead submission. The browser never posts here directly -- these run inside Server Actions
+ * (see `src/lib/leads.ts`), which is what keeps `API_BASE_URL` server-side.
+ *
+ * Note what a payload does not carry: a price. The server recomputes the total from the option
+ * slugs and ignores anything else, so sending one would be theatre.
+ */
+
+const quoteLineSchema = z.object({
+  group_name: z.string(),
+  option_slug: z.string(),
+  option_name: z.string(),
+  price_delta_cents: z.number().int(),
+});
+
+const quoteSchema = z.object({
+  ref: z.string(),
+  kind: z.enum(["build", "enquiry"]),
+  platform_slug: z.string().nullable(),
+  platform_name: z.string().nullable(),
+  base_price_cents: z.number().int().nullable(),
+  total_cents: z.number().int().nullable(),
+  lines: z.array(quoteLineSchema),
+  created_at: z.string(),
+});
+
+/** The one error shape the API answers every rejection with -- see api/app/errors.py. */
+const apiErrorSchema = z.object({
+  code: z.string(),
+  message: z.string(),
+  errors: z
+    .array(
+      z.object({
+        field: z.string().nullable().default(null),
+        message: z.string(),
+        code: z.string().nullable().default(null),
+      }),
+    )
+    .default([]),
+});
+
+export type Quote = z.infer<typeof quoteSchema>;
+export type ApiErrorBody = z.infer<typeof apiErrorSchema>;
+export type LeadResult = { ok: true; quote: Quote } | { ok: false; error: ApiErrorBody };
+
+export type ContactPayload = { name: string; email: string; phone: string };
+
+export type QuotePayload = {
+  platform_slug: string;
+  option_slugs: string[];
+  contact: ContactPayload;
+  intended_use: string;
+  timeline: string;
+  notes: string;
+  website: string;
+  elapsed_ms: number | null;
+};
+
+export type EnquiryPayload = Omit<QuotePayload, "platform_slug" | "option_slugs"> & {
+  platform_slug: string | null;
+};
+
+async function postLead(path: string, payload: unknown, forwardedFor: string | null) {
+  const res = await fetch(`${apiBaseUrl()}${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      // The visitor's address, not this server's. Without it every submission in the world
+      // would share one rate-limit bucket -- see api/app/routers/quotes.py.
+      ...(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  });
+
+  const body: unknown = await res.json();
+  if (res.ok) {
+    return { ok: true as const, quote: quoteSchema.parse(body) };
+  }
+  return { ok: false as const, error: apiErrorSchema.parse(body) };
+}
+
+export async function submitQuote(
+  payload: QuotePayload,
+  forwardedFor: string | null,
+): Promise<LeadResult> {
+  return postLead("/v1/quotes", payload, forwardedFor);
+}
+
+export async function submitEnquiry(
+  payload: EnquiryPayload,
+  forwardedFor: string | null,
+): Promise<LeadResult> {
+  return postLead("/v1/enquiries", payload, forwardedFor);
+}

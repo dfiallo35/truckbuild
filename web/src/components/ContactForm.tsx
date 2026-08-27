@@ -1,69 +1,78 @@
-const TIMELINES = ["Just exploring", "3–6 months", "1–3 months", "As soon as possible"];
+"use client";
 
-const inputClasses =
-  "border-border-strong bg-canvas-raised text-ink focus-visible:outline-accent w-full border px-4 py-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
-const labelClasses = "font-data text-ink-faint text-xs tracking-[0.14em] uppercase";
+import { useActionState } from "react";
 
-export function ContactForm({ platformOptions }: { platformOptions: ReadonlyArray<string> }) {
+import {
+  Field,
+  FormNotice,
+  SelectField,
+  SpamControls,
+  SubmitButton,
+  TextAreaField,
+  TimelineField,
+} from "@/components/leads/LeadFields";
+import { sendEnquiry } from "@/lib/actions";
+import { IDLE_LEAD_STATE } from "@/lib/leads";
+
+/**
+ * The general enquiry. Same Server Action route, same storage and same spam controls as a
+ * build request -- there is simply no build to price, so sales reads one list of leads rather
+ * than two.
+ */
+export function ContactForm({
+  platformOptions,
+}: {
+  platformOptions: ReadonlyArray<{ slug: string; name: string }>;
+}) {
+  const [state, action] = useActionState(sendEnquiry, IDLE_LEAD_STATE);
+
   return (
-    <form className="flex flex-col gap-6">
-      <div className="grid gap-6 sm:grid-cols-2">
-        <label className="flex flex-col gap-2">
-          <span className={labelClasses}>Name</span>
-          <input type="text" name="name" autoComplete="name" required className={inputClasses} />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className={labelClasses}>Email</span>
-          <input type="email" name="email" autoComplete="email" required className={inputClasses} />
-        </label>
-      </div>
+    <form action={action} className="flex flex-col gap-6">
+      <FormNotice message={state.message} />
+      <SpamControls />
 
       <div className="grid gap-6 sm:grid-cols-2">
-        <label className="flex flex-col gap-2">
-          <span className={labelClasses}>Phone (optional)</span>
-          <input type="tel" name="phone" autoComplete="tel" className={inputClasses} />
-        </label>
-        <label className="flex flex-col gap-2">
-          <span className={labelClasses}>Platform of interest</span>
-          <select name="platform" defaultValue="" className={inputClasses}>
-            <option value="">Not sure yet</option>
-            {platformOptions.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <fieldset className="flex flex-col gap-3">
-        <legend className={labelClasses}>Timeline</legend>
-        <div className="flex flex-wrap gap-4">
-          {TIMELINES.map((timeline) => (
-            <label key={timeline} className="text-ink-muted flex items-center gap-2 text-sm">
-              <input type="radio" name="timeline" value={timeline} className="accent-accent" />
-              {timeline}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      <label className="flex flex-col gap-2">
-        <span className={labelClasses}>What are you building for?</span>
-        <textarea
-          name="intended_use"
-          rows={4}
-          placeholder="Payload, terrain, crew size — whatever tells us the job."
-          className={`${inputClasses} resize-none`}
+        <Field label="Name" name="name" errors={state.errors} required autoComplete="name" />
+        <Field
+          label="Email"
+          name="email"
+          type="email"
+          errors={state.errors}
+          required
+          autoComplete="email"
         />
-      </label>
+      </div>
 
-      <button
-        type="submit"
-        className="bg-accent text-accent-ink hover:bg-accent-hover font-display self-start px-8 py-3 text-sm font-medium tracking-[0.08em] uppercase transition-colors"
-      >
-        Send inquiry
-      </button>
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field
+          label="Phone (optional)"
+          name="phone"
+          type="tel"
+          errors={state.errors}
+          autoComplete="tel"
+        />
+        <SelectField
+          label="Platform of interest"
+          name="platform_slug"
+          errors={state.errors}
+          emptyLabel="Not sure yet"
+          options={platformOptions.map((platform) => ({
+            value: platform.slug,
+            label: platform.name,
+          }))}
+        />
+      </div>
+
+      <TimelineField />
+
+      <TextAreaField
+        label="What are you building for?"
+        name="intended_use"
+        errors={state.errors}
+        placeholder="Payload, terrain, crew size — whatever tells us the job."
+      />
+
+      <SubmitButton>Send inquiry</SubmitButton>
     </form>
   );
 }

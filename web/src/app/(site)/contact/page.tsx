@@ -23,7 +23,12 @@ export default async function ContactPage() {
             title="Talk to sales"
             description="Tell us the mission and we'll tell you what it takes to build it. No obligation, no auto-generated quote."
           />
-          <ContactForm platformOptions={catalog.platforms.map((platform) => platform.name)} />
+          <ContactForm
+            platformOptions={catalog.platforms.map((platform) => ({
+              slug: platform.slug,
+              name: platform.name,
+            }))}
+          />
         </div>
 
         <div className="border-border flex flex-col gap-6 border-t pt-8 md:border-t-0 md:border-l md:pt-0 md:pl-16">
