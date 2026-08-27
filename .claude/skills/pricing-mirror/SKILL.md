@@ -22,6 +22,15 @@ on one side fails on the other, which is precisely the alarm we want.
 If the two ever drift despite this, the documented fallback is to delete the TypeScript mirror and
 call a debounced `POST /v1/price` instead. Reach for that only if the fixtures stop holding the line.
 
+## Seeing both halves at once
+
+`codegraph explore "price_build"` (or `"validate_selection"`) returns both implementations' current
+source in one call, because the CodeGraph index at `.codegraph/` spans `api/` and `web/` together.
+That matters here specifically: the failure this skill exists to prevent is editing one half while
+looking only at one half, and a single query that puts the Python and the TypeScript side by side
+removes the opportunity. Its blast-radius list also names the callers and the covering tests, which is
+what tells you whether a change reaches the configurator UI as well as the quote endpoint.
+
 ## The shared fixture
 
 **`fixtures/pricing-cases.json`** at the repo root — deliberately outside both `api/` and `web/` so

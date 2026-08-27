@@ -64,6 +64,20 @@ Mail delivery is allowed to fail without failing a request, because the lead is 
 Revalidation is different: if it fails, log it loudly. Stale catalog data is a wrong price on a public
 page, and nothing downstream will notice on its own.
 
+## Finding catalog reads that escaped the cache
+
+The rule "no page component calls the API directly" is a statement about call paths, which is exactly
+what the CodeGraph index at `.codegraph/` answers and what grep cannot:
+
+```bash
+codegraph explore "what calls the catalog fetch functions in web/src/lib/api.ts"
+codegraph explore "cacheTag"     # every tagged read, and the pages reaching each one
+```
+
+A page that shows up as a caller of an API function without a `'use cache'` wrapper in between is the
+bug — the same one that turns up later in a build as a route that went dynamic. Check this before
+adding a cache tag, not after.
+
 ## Diagnosing "the site is showing the old value"
 
 Work down the chain rather than guessing:
