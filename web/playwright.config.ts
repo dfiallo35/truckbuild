@@ -30,8 +30,17 @@ export default defineConfig({
     ? [["github"], ["list"], ["html", { open: "never" }]]
     : [["list"], ["html", { open: "never" }]],
 
+  // Against a deployment the first request pays a cold start: the API is a Python function
+  // that has to boot and open a Neon connection, and the page waiting on it is the one the
+  // very first spec loads. Measured on the deployed site, that first `page.goto` took over
+  // 30s while every subsequent one took under 8s -- so the default 30s timeout fails exactly
+  // one test, always the first, for reasons that have nothing to do with the build. Local
+  // runs keep the tighter default, where a slow page genuinely is a regression.
+  timeout: isLocal ? 30_000 : 90_000,
+
   use: {
     baseURL,
+    ...(isLocal ? {} : { navigationTimeout: 60_000, actionTimeout: 30_000 }),
     trace: "on-first-retry",
     // The full Chromium build rather than Playwright's default `chromium-headless-shell`. The
     // shell is a stripped binary that exists to start fast; this suite asserts layout,

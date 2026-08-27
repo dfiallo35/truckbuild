@@ -76,9 +76,12 @@ pnpm dev                  # :3000
 
 ## Deploying
 
-Neon, then Render, then Vercel — in that order, because each needs the one before it. The whole
-stack is on free tiers; the runbook, the secrets, the failure modes, and what the free tiers cost
-you in exchange are in [docs/deploy.md](docs/deploy.md).
+Live: **<https://truckbuild.vercel.app>** (site) and **<https://truckbuild-api.vercel.app>** (API).
+
+Neon, then the API, then the web app — in that order, because each needs the one before it. Both
+services are Vercel projects, distinguished by their Root Directory (`api` and `web`); Postgres is
+Neon. The whole stack is on free tiers. The runbook, the secrets, the failure modes, and what the
+free tiers cost you in exchange are in [docs/deploy.md](docs/deploy.md).
 
 ## Environment variables
 
