@@ -12,15 +12,34 @@ import { allOptions } from "@/lib/build";
  * fraction of the cost, and an option with nothing to show simply contributes no layer.
  *
  * Every layer stays mounted and cross-fades on opacity rather than mounting and unmounting,
- * so switching an option is instant instead of a fetch away.
+ * so switching an option is instant instead of a fetch away. That means the whole platform's
+ * layer set downloads on load, which is the deliberate trade: the layers are small next to the
+ * base render, and an option that visibly costs a network round trip stops feeling like a
+ * configurator. What it does not survive is being ignored once the placeholder renders are
+ * replaced by real photography -- hence the explicit priority below rather than an accident of
+ * DOM order. The layers belonging to the step in front of the visitor are the ones needed
+ * first; the rest may take their time.
  */
-export function BuildViewer({ platform, selected }: { platform: Platform; selected: string[] }) {
+export function BuildViewer({
+  platform,
+  selected,
+  activeGroupSlug,
+}: {
+  platform: Platform;
+  selected: string[];
+  /** Option group currently open in the panel; its layers load ahead of the others. */
+  activeGroupSlug?: string;
+}) {
   const chosen = useMemo(() => new Set(selected), [selected]);
 
   const layers = useMemo(
     () =>
-      allOptions(platform)
-        .flatMap((option) => (option.layer ? [{ slug: option.slug, layer: option.layer }] : []))
+      platform.option_groups
+        .flatMap((group) =>
+          group.options.flatMap((option) =>
+            option.layer ? [{ slug: option.slug, layer: option.layer, groupSlug: group.slug }] : [],
+          ),
+        )
         .sort((a, b) => a.layer.z_index - b.layer.z_index),
     [platform],
   );
@@ -33,7 +52,10 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
   }, [chosen, platform]);
 
   return (
-    <div className="relative flex min-h-0 items-center justify-center overflow-hidden px-4 py-6 md:px-8">
+    <div
+      data-testid="build-viewer"
+      className="relative flex min-h-0 items-center justify-center overflow-hidden px-4 py-6 md:px-8"
+    >
       <div
         role="img"
         aria-label={description}
@@ -50,13 +72,16 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
           />
         ) : null}
 
-        {layers.map(({ slug, layer }) => (
+        {layers.map(({ slug, layer, groupSlug }) => (
           <Image
             key={slug}
             src={layer.url}
             alt=""
             fill
             sizes="(min-width: 768px) 60vw, 100vw"
+            // Already-selected layers are on screen, and the open step's are one click from
+            // being. Everything else is speculative, and should not compete with them.
+            fetchPriority={chosen.has(slug) || groupSlug === activeGroupSlug ? "high" : "low"}
             style={{ zIndex: layer.z_index, opacity: chosen.has(slug) ? 1 : 0 }}
             className="object-contain transition-opacity duration-300 ease-out motion-reduce:transition-none"
           />

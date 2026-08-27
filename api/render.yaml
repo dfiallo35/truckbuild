@@ -1,0 +1,72 @@
+# Render blueprint for the TruckBuild API.
+#
+# Chosen because it is genuinely free with no payment card, which is the constraint for this
+# test deployment. The trade is that a free instance spins down after about fifteen minutes of
+# inactivity and takes the better part of a minute to wake.
+#
+# That trade is survivable *here specifically*, and it is worth understanding why rather than
+# rediscovering it: the marketing pages do not read this API at request time. Catalog reads sit
+# inside `use cache` functions and the pages render from cache, so a sleeping API is invisible
+# to a visitor browsing the site -- which is the whole point of the Cache Components design in
+# docs/decisions.md. What a cold start does land on is the first quote submission after an idle
+# period, and a Vercel build.
+#
+# Deployed from the Render dashboard by pointing a Blueprint at this file, or by creating the
+# service manually with the settings below. See docs/deploy.md.
+
+services:
+  - type: web
+    name: truckbuild-api
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: api
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /healthz
+
+    # Migrations run here rather than as a separate release step, because Render's pre-deploy
+    # command is not available on the free plan. It is the weaker arrangement and the comment
+    # is the honest version of why: a failed migration takes the service down with it, where a
+    # true release command would have aborted the deploy and left the old version serving. On
+    # a single free instance with no concurrent deploys that is an acceptable risk; it is the
+    # first thing to fix on moving to a paid plan.
+    #
+    # $PORT is assigned by Render and must be bound, which is why this overrides the
+    # Dockerfile's CMD rather than relying on it.
+    startCommand: >-
+      sh -c "alembic upgrade head &&
+      uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+
+      # sync: false means Render prompts for the value and stores it as a secret rather than
+      # reading it from this file. Nothing that must stay out of a git diff has a `value:` here.
+      - key: DATABASE_URL
+        sync: false # Neon, with the +psycopg driver prefix -- see docs/deploy.md
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: REVALIDATE_SECRET
+        sync: false # Must be byte-identical to the web app's
+      - key: WEB_BASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false # JSON array, not a bare string
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SALES_INBOX
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: SENTRY_DSN
+        sync: false # Optional; unset leaves the SDK inert and the JSON logs working
+
+      # Render exposes the deployed commit, which telemetry stamps onto error reports so a
+      # regression can be pinned to a deploy.
+      - key: RELEASE
+        fromService:
+          type: web
+          name: truckbuild-api
+          property: commit

@@ -165,7 +165,10 @@ function ConflictNotice({
         ];
 
   return (
-    <div className="border-accent/40 bg-accent/5 flex flex-col gap-2 border-l-2 px-4 py-3">
+    <div
+      data-testid="conflict-notice"
+      className="border-accent/40 bg-accent/5 flex flex-col gap-2 border-l-2 px-4 py-3"
+    >
       <p className="text-ink text-xs leading-relaxed">{message}</p>
       <button
         type="button"

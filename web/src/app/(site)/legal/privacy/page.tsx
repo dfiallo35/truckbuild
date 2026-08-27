@@ -58,7 +58,13 @@ export default function PrivacyPage() {
             <h2 className="font-display text-ink text-lg tracking-tight uppercase">Your choices</h2>
             <p>
               To review, correct, or delete information you&rsquo;ve submitted, email{" "}
-              <a href={`mailto:${SALES_EMAIL}`} className="text-accent hover:underline">
+              {/* Underlined always, not on hover. A link sitting inside a paragraph that is
+                  distinguished from the prose around it by colour alone fails WCAG 1.4.1 --
+                  and hover is not a state a keyboard or touch user passes through. */}
+              <a
+                href={`mailto:${SALES_EMAIL}`}
+                className="text-accent underline underline-offset-4 hover:no-underline"
+              >
                 {SALES_EMAIL}
               </a>{" "}
               with your request.

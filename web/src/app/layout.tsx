@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Oswald } from "next/font/google";
 
@@ -63,6 +65,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="bg-canvas text-ink flex min-h-full flex-col">
         <JsonLd data={organizationJsonLd} />
         {children}
+
+        {/*
+          Page analytics and field Core Web Vitals. Both are first-party on Vercel -- the
+          script is served from this origin, so no third-party host sees the visitor and no
+          cookie banner is owed for them. They are inert outside Vercel, which is what keeps
+          `pnpm dev` and the Playwright suite free of network calls to something that is not
+          there. SpeedInsights measures the same metrics the stage's Lighthouse targets do,
+          except on real visitors' devices rather than one run on a developer's laptop.
+        */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

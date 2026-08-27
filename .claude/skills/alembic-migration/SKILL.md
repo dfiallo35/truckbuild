@@ -77,7 +77,7 @@ target a different database than you think.
 `app/seed.py`, which upserts by slug. Migrations change shape; the seed loader changes content. Mixing
 them makes content unreviewable in diffs and makes migrations unrepeatable.
 
-**Migrations run on release in production** (Fly.io, per `docs/stages/07-polish-deploy.md`). A
+**Migrations run on deploy in production** (Render, in the start command -- see `docs/deploy.md`). A
 migration that needs a manual step is a migration that will fail a deploy at an inconvenient moment.
 
 **One migration per logical change.** Squashing several unrelated schema changes into one revision

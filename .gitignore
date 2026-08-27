@@ -18,6 +18,12 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
+# Playwright — run artifacts, not source. The specs in web/e2e/ are committed.
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+
 # CodeGraph — the symbol index is built from the source on each machine,
 # so it is local state, not shared state. Never commit the database.
 .codegraph/

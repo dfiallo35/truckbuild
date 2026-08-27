@@ -8,7 +8,7 @@
 | Front end | Next.js 16 (App Router) + TypeScript + Tailwind + shadcn/ui |
 | Back end | **FastAPI owns everything, including the catalog** |
 | Database | Postgres (Neon), SQLModel + Alembic |
-| Hosting | Next.js on Vercel, FastAPI on Fly.io, Postgres on Neon |
+| Hosting | Next.js on Vercel, FastAPI on Render, Postgres on Neon — all on free tiers, see below |
 | Catalog content | Placeholder verticals — invented demo platforms to be replaced with real data |
 | Aesthetic | Dark, cinematic, photo-led |
 
@@ -24,6 +24,50 @@ platform pages. Resolving it is the most important structural decision in this p
   Editors get near-immediate updates without the site paying a per-request API cost.
 - The seed catalog is committed as a versioned YAML file loaded by a seed command. This keeps the
   reviewable, version-controlled quality of in-repo content while Postgres remains the runtime source of truth.
+
+## Hosting, and why it is all free (Stage 7)
+
+The original choice was Vercel + Fly.io + Neon. Fly ended its free allowance for organizations created
+after late 2024, and this deployment is **a test of the page rather than a commercial launch**, so the
+API moved to Render's free web service and the whole stack now costs nothing.
+
+Two liabilities come with that, and both are dated rather than permanent:
+
+- **The Render free instance sleeps** after ~15 minutes idle, waking in about a minute. This is far
+  less damaging here than it would be in most architectures, and for a reason that is worth noticing:
+  the marketing pages never read the API at request time. Cache Components means they render from
+  cache, so a sleeping API is invisible to a browsing visitor. It surfaces on the first quote
+  submission after an idle spell, and on a Vercel build. In effect the caching decision above is what
+  makes a free API host viable at all.
+- **Vercel Hobby forbids commercial use.** Legitimate while this is a test. The day the site takes real
+  leads for a business, Hobby is the wrong tier and nothing technical will break to say so.
+
+Migrations are the accepted compromise: Render's pre-deploy hook is paid-only, so `render.yaml` runs
+`alembic upgrade head` inside the start command. A failed migration therefore takes the service down,
+where a true release command would have aborted the deploy and left the previous version serving.
+
+## Observability (Stage 7)
+
+| Concern | Choice |
+|---|---|
+| Page analytics | `@vercel/analytics` and `@vercel/speed-insights` — first-party on Vercel, so no third-party host sees the visitor and no cookie banner is owed |
+| API errors | Sentry, active only when `SENTRY_DSN` is set, over an always-on layer of structured per-request JSON logs |
+| Web errors | Next's `onRequestError` hook server-side, `global-error.tsx` → `/api/client-error` client-side. No error SDK is shipped to the browser |
+| Correlation | One `X-Request-ID` per request, forwarded across the service boundary and returned to the caller |
+
+Two decisions inside that are worth stating plainly, because the cheaper version of each looks the same
+until it matters:
+
+- **Structured logs are the floor, not the fallback.** They cost nothing, belong to no vendor, and keep
+  working when Sentry is off, misconfigured, or rate-limited — which includes every environment except
+  production. Sentry is the layer on top, not the thing being relied on.
+- **The browser gets no error tracker.** A marketing site should not ship one to every visitor to catch a
+  rare failure, so the client reports its crashes to a first-party route instead. That route is
+  necessarily unauthenticated — it is called by a page that has just crashed — so it caps the body,
+  keeps only known fields, and answers 204 to everything.
+- **Lead data never reaches Sentry.** A quote body carries a name, an email, and a phone number. The
+  `before_send` scrubber drops the request body, cookies, and credential headers, and it is the most
+  heavily tested part of `telemetry.py` because a mistake in it is invisible until after it has shipped.
 
 ## Accepted risks
 

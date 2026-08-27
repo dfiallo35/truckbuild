@@ -32,7 +32,7 @@ Each stage is independently reviewable and ends in a checkpoint that must pass b
 | 4 | [Configurator](stages/04-configurator.md) — viewer, build state, live pricing, rules | **Complete** |
 | 5 | [Quote pipeline](stages/05-quote-pipeline.md) — server-authoritative submission, email | **Complete** |
 | 6 | [Admin & revalidation](stages/06-admin-revalidation.md) — quote listing, cache webhook | **Complete** |
-| 7 | [Polish & deploy](stages/07-polish-deploy.md) — perf, a11y, Fly + Vercel + Neon | Not started |
+| 7 | [Polish & deploy](stages/07-polish-deploy.md) — perf, a11y, Render + Vercel + Neon | In progress |
 
 ## Repository layout
 
