@@ -24,7 +24,7 @@ is set — that is how Stage 7's production smoke test is executed rather than c
 ```bash
 cd web
 pnpm e2e                                        # local; starts `pnpm start` itself
-E2E_BASE_URL=https://truckbuild.com pnpm e2e    # the deployed site
+E2E_BASE_URL=https://truckbuild.vercel.app pnpm e2e   # the deployed site
 ```
 
 `configurator.spec.ts` and `a11y.spec.ts` are read-only and safe to point anywhere. `quote.spec.ts`

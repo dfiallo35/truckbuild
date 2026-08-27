@@ -8,7 +8,7 @@
 | Front end | Next.js 16 (App Router) + TypeScript + Tailwind + shadcn/ui |
 | Back end | **FastAPI owns everything, including the catalog** |
 | Database | Postgres (Neon), SQLModel + Alembic |
-| Hosting | Next.js on Vercel, FastAPI on Render, Postgres on Neon — all on free tiers, see below |
+| Hosting | Both services on Vercel, Postgres on Neon — all on free tiers, see below |
 | Catalog content | Placeholder verticals — invented demo platforms to be replaced with real data |
 | Aesthetic | Dark, cinematic, photo-led |
 
@@ -27,24 +27,37 @@ platform pages. Resolving it is the most important structural decision in this p
 
 ## Hosting, and why it is all free (Stage 7)
 
-The original choice was Vercel + Fly.io + Neon. Fly ended its free allowance for organizations created
-after late 2024, and this deployment is **a test of the page rather than a commercial launch**, so the
-API moved to Render's free web service and the whole stack now costs nothing.
+This deployment is **a test of the page rather than a commercial launch**, so the whole stack is on
+free tiers and costs nothing. Getting there took three attempts, and the history is worth keeping
+because each rejection was for a different reason:
 
-Two liabilities come with that, and both are dated rather than permanent:
+1. **Fly.io** — dropped when Fly ended its free allowance for organizations created after late 2024.
+2. **Render** — dropped when it turned out Render could not clone this **private** repository. That
+   needs Render's GitHub App installed on the repo *and* the Render account linked to that GitHub
+   identity; the second link cannot be made from any API, and the failure reports itself as an
+   unfetchable URL, which reads like a syntax error.
+3. **Vercel**, for both services — the API as a Python function beside the Next.js app.
 
-- **The Render free instance sleeps** after ~15 minutes idle, waking in about a minute. This is far
-  less damaging here than it would be in most architectures, and for a reason that is worth noticing:
-  the marketing pages never read the API at request time. Cache Components means they render from
-  cache, so a sleeping API is invisible to a browsing visitor. It surfaces on the first quote
-  submission after an idle spell, and on a Vercel build. In effect the caching decision above is what
-  makes a free API host viable at all.
+`api/render.yaml` and `api/Dockerfile` are **kept, not deleted**. They are a complete description of
+the container deployment and the thing to return to on a paid plan; nothing reads them today, and
+[deploy.md](deploy.md) says so plainly.
+
+Three liabilities come with the current arrangement, all dated rather than permanent:
+
 - **Vercel Hobby forbids commercial use.** Legitimate while this is a test. The day the site takes real
   leads for a business, Hobby is the wrong tier and nothing technical will break to say so.
+- **There is no automatic migration step.** A container could run `alembic upgrade head` on start; a
+  Python function has no equivalent hook. Migrations are run by hand against Neon's direct URL,
+  *before* deploying code that depends on them. This is the weakest part of the setup: forgetting it
+  means a deploy that succeeds while its queries fail.
+- **The rate limiter is per-instance.** `app/services/ratelimit.py` keeps counters in process memory,
+  and serverless instances do not share state. It still blunts a naive flood, but it is no longer the
+  global control it was designed as. The fix is a shared store — Postgres or KV — and it is deferred
+  rather than overlooked.
 
-Migrations are the accepted compromise: Render's pre-deploy hook is paid-only, so `render.yaml` runs
-`alembic upgrade head` inside the start command. A failed migration therefore takes the service down,
-where a true release command would have aborted the deploy and left the previous version serving.
+One thing the caching decision above quietly bought: because marketing pages never read the API at
+request time, API cold starts are invisible to a browsing visitor. They surface only on a lead
+submission after an idle spell, and on a build.
 
 ## Observability (Stage 7)
 
