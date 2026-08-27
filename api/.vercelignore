@@ -1,0 +1,10 @@
+# Nothing here is needed to serve a request, and everything here costs upload time and
+# function size. tests/ in particular pulls pytest fixtures into the bundle for no reason.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+tests/
+Dockerfile
+render.yaml
