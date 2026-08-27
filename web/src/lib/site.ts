@@ -1,9 +1,10 @@
 export const SITE_NAME = "TruckBuild";
 export const SITE_DESCRIPTION = "Purpose-built truck upfits, engineered and configured to order.";
 
-// Placeholder production domain -- swap for the real one at deploy time (see docs/decisions.md
-// on placeholder content). Used for metadataBase, canonical URLs, sitemap.xml, and JSON-LD.
-export const SITE_URL = "https://truckbuild.example";
+// The deployed origin. This is a compile-time constant, not an environment variable, so it
+// feeds metadataBase, canonical URLs, sitemap.xml, and JSON-LD at build time -- changing the
+// domain means a rebuild, not a redeploy of the same artifact.
+export const SITE_URL = "https://truckbuild.vercel.app";
 
 export const PRIMARY_NAV: ReadonlyArray<{ label: string; href: string }> = [
   { label: "Builds", href: "/builds" },
