@@ -56,8 +56,55 @@ jobs:
     defaults:
       run:
         working-directory: web
+
+    # `pnpm build` prerenders the catalog: generateStaticParams and every `use cache` read go
+    # through GET /v1/catalog. Without a real API behind API_BASE_URL the build fails outright,
+    # so the job runs the same Postgres + FastAPI pair a deploy does. Building against a stub
+    # would leave the one thing this build is meant to prove -- that catalog pages prerender --
+    # untested.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: truckbuild
+          POSTGRES_PASSWORD: truckbuild
+          POSTGRES_DB: truckbuild
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U truckbuild -d truckbuild"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://truckbuild:truckbuild@localhost:5432/truckbuild
+      # Server-side only, never NEXT_PUBLIC_ — the browser must not learn the API origin.
+      API_BASE_URL: http://localhost:8000
+
     steps:
       - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+        working-directory: api
+      - run: uv run alembic upgrade head
+        working-directory: api
+      - run: uv run python -m app.seed
+        working-directory: api
+      - name: Start the API
+        working-directory: api
+        run: |
+          uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:8000/healthz && exit 0
+            sleep 1
+          done
+          echo "API did not become healthy" >&2
+          exit 1
+
       # `defaults.run.working-directory` applies only to `run` steps, not to `uses` steps, so
       # this action starts at the repo root where there is no package.json. Point it at the
       # one that carries the `packageManager` pin rather than duplicating the version here.
@@ -76,4 +123,17 @@ jobs:
       # api/seed/catalog.yaml from the repo root, so it fails here the moment the Python half
       # moves without it (see .claude/skills/pricing-mirror).
       - run: pnpm test
-      - run: pnpm build
+
+      # Redirected rather than piped: piping a build through `tee` would replace its exit
+      # status with the pager's, which is a mistake this repo has already made once.
+      #
+      # If "Cache Components enabled" ever stops appearing, next.config.ts is not being picked
+      # up and every caching assumption in the design is void — a build failure, not cosmetic.
+      - name: Build (Cache Components must stay enabled)
+        run: |
+          if ! pnpm build > build.log 2>&1; then
+            cat build.log
+            exit 1
+          fi
+          cat build.log
+          grep -q -- "- Cache Components enabled" build.log
