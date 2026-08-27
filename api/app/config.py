@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     # Outbound mail. Absent in development, in which case the mailer logs instead of sending.
     resend_api_key: str | None = Field(default=None)
     sales_inbox: str = Field(default="sales@example.com")
+    mail_from: str = Field(default="TruckBuild <builds@example.com>")
+
+    # Lead-form spam controls (see app/services/ratelimit.py and app/services/spam.py). Tuned
+    # to be generous: rejecting a real customer costs more than storing a junk lead.
+    quote_rate_limit: int = Field(default=5)
+    quote_rate_limit_window_seconds: int = Field(default=600)
+    quote_min_submit_ms: int = Field(default=2500)
 
     environment: str = Field(default="development")
 
