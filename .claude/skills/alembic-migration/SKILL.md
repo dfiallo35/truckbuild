@@ -77,8 +77,31 @@ target a different database than you think.
 `app/seed.py`, which upserts by slug. Migrations change shape; the seed loader changes content. Mixing
 them makes content unreviewable in diffs and makes migrations unrepeatable.
 
-**Migrations run on deploy in production** (Render, in the start command -- see `docs/deploy.md`). A
-migration that needs a manual step is a migration that will fail a deploy at an inconvenient moment.
+**Migrations do NOT run on deploy.** This changed in Stage 7 and it is the single most dangerous
+thing to get wrong here. The API runs as a Vercel Python function, which has no start hook to run
+`alembic upgrade head` in -- so a deploy applies code and nothing else. Push a migration-dependent
+change and the deploy **succeeds** while its queries fail against the old schema.
+
+Run migrations by hand, against Neon's **direct** URL (not the pooled one -- Alembic wants a real
+session), **before** merging the code that depends on them:
+
+```bash
+cd api
+export DATABASE_URL=$(grep '^DATABASE_URL=' ../.env.production.local | cut -d= -f2-)
+uv run alembic current          # confirm where production actually is first
+uv run alembic upgrade head
+```
+
+Because migrate and deploy are now two steps with a gap between them, **the old code runs against the
+new schema for that window.** Order every change so that gap is survivable:
+
+| Change | Safe order |
+|---|---|
+| Add a column / table | Migrate first, then deploy. Additive schema is invisible to old code |
+| Drop or rename a column | Deploy code that stops using it, *then* migrate. Never the reverse |
+| Add a non-null column | Two migrations: add nullable + backfill, deploy, then add the constraint |
+
+Renaming in one step is what breaks production. Expand, deploy, contract -- always.
 
 **One migration per logical change.** Squashing several unrelated schema changes into one revision
 makes the rollback story worse for all of them.

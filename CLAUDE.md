@@ -102,6 +102,30 @@ layout holds only the document shell. `/configurator/[slug]` sits outside that g
 full-bleed with its own minimal bar — a nested layout cannot remove a parent's chrome. Route groups add
 no URL segment, so paths are unaffected.
 
+### Deployment
+
+Live at <https://truckbuild.vercel.app>, API at <https://truckbuild-api.vercel.app>, Postgres on Neon.
+**Two Vercel projects from this one repo**, distinguished by Root Directory: `truckbuild` (`web`) and
+`truckbuild-api` (`api`, running FastAPI as a Python function). Both deploy on push to `main`.
+
+Three things about it that are not guessable and that fail silently:
+
+- **A deploy does not run migrations.** There is no start hook on a Python function. A
+  migration-dependent change deploys *successfully* and then fails its queries. Migrate by hand
+  against Neon's **direct** URL before merging — see the `alembic-migration` skill.
+- **`api/vercel.json` must declare `{"framework": "fastapi"}`.** Without it Vercel builds the project
+  as Node, finishes in ~50ms having built no function, reports success, and every route 404s.
+- **The deployed API uses Neon's pooled endpoint**; Alembic and the seed use the direct one. Frozen
+  function instances hold their connections.
+
+`api/render.yaml` and `api/Dockerfile` are **dead config** — a complete description of the container
+deployment, kept as the thing to return to on a paid plan. Nothing reads them. Don't treat them as
+what production does.
+
+Vercel and Neon are both reachable over MCP (deferred — load with `ToolSearch`), and the `vercel` CLI
+is installed and authenticated. Environment variables go through the CLI; there is no MCP tool for
+them, and changing one does not redeploy.
+
 ## Working in this repo
 
 **The repo is indexed by CodeGraph.** `codegraph explore "<symbol or question>"` (or the
@@ -123,21 +147,31 @@ CI-equivalent sweep, then open the PR with the `open-pr` skill. Branch off a fre
 commit to `main` directly. If an open PR already covers the same concern, add a commit to it instead
 of opening a second one that will conflict.
 
-The build is split into eight staged, independently reviewable steps in `docs/PLAN.md`, each with its own
-file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
-stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-All eight stages (0–7) are complete. The site is deployed at <https://truckbuild.vercel.app>
-with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
-and also records why the API runs as a Vercel Python function rather than the container
-`api/render.yaml` still describes.
+**All eight stages (0–7) are complete and the site is live**, so ordinary feature work is the mode now
+— there is no "next stage" to pick up. The staged build is recorded in `docs/PLAN.md` and
+`docs/stages/`; those files are a **historical record of how the build went**, not a description of the
+present, and rewriting them to match today would destroy the thing that makes them useful.
 
-Supporting docs: `docs/domain-model.md` (entities, vocabulary, the placeholder catalog and its compatibility
-rules), `docs/testing.md` (what each layer tests and with which tool), `docs/decisions.md` (locked-in choices,
-accepted risks, explicitly deferred scope).
+Documentation, all indexed from `README.md`:
 
-Stage 2 asks for the `frontend-design` skill to be loaded before any visual work — the dark, cinematic
-direction is the product there, and framework defaults will read as templated. Design tokens go in
-`globals.css` and map into the Tailwind theme; no component hardcodes a color.
+| Doc | For |
+|---|---|
+| `docs/architecture.md` | How the two services fit together and the boundaries that must hold |
+| `docs/setup.md` | Running it locally, every command, the CI sweep, troubleshooting |
+| `docs/features.md` | What the site does, page by page, and the configurator mechanics |
+| `docs/deploy.md` | The deployment runbook and its failure modes |
+| `docs/decisions.md` | Locked-in choices, accepted risks, deferred scope |
+| `docs/domain-model.md` | Entities, vocabulary, the placeholder catalog and its rules |
+| `docs/testing.md` | What each layer tests, with which tool |
+
+When you change how the system works, the doc that describes it is part of the change. Two documents
+went stale for exactly one session after the API moved hosts, and both stated the old arrangement
+confidently — which is worse than saying nothing.
+
+**Load the `frontend-design` skill before any visual work.** The dark, cinematic direction *is* the
+product on this site, and framework defaults will read as templated against it — this was Stage 2's
+instruction and it still stands for every change to the UI. Design tokens live in `globals.css` and map
+into the Tailwind theme; no component hardcodes a color.
 
 Catalog names, prices, and specs (Bristlecone / Ironwood / Sentinel) are demo placeholders to be replaced
 with the real company's data.
@@ -153,7 +187,8 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
 | `catalog-change` | Adding or editing a platform, option, price, or rule — the chain from `catalog.yaml` to a rendered page |
 | `cache-and-revalidation` | Adding a catalog read, changing cache tags, or a catalog edit not reaching the site |
 | `alembic-migration` | Any change under `api/app/models/` |
-| `stage-checkpoint` | Verifying or closing out a stage, or running the CI-equivalent sweep |
+| `deploy` | Deploying, changing an env var on either service, or diagnosing the live site |
+| `stage-checkpoint` | Running the CI-equivalent sweep, or verifying against the deployment |
 | `open-pr` | Opening or inspecting a PR — the last step of any task that produces committed work |
 
 ## Gotchas recorded from the build
@@ -166,4 +201,21 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
   leaves the container running the old venv. It fails as `ModuleNotFoundError` for a package that is
   plainly installed, and the API then hangs rather than erroring, which reads like a database problem.
 - Never pipe a command whose exit status matters (e.g. `pnpm install`) through `tail` — it masks the
-  exit code.
+  exit code. Redirect to a file and capture `$?` instead.
+- **`next dev` and `next build` cannot share a directory.** A dev server left running rewrites `.next`
+  underneath a production build, leaving prerendered HTML that references chunk hashes from a
+  different build. Every static asset then 404s, `nosniff` refuses the 404 body, and the configurator
+  sits on its Suspense fallback forever — a failure that looks exactly like a hydration bug and is
+  not. Stop the dev server, `rm -rf .next`, rebuild.
+- **Playwright runs on port 3100 and never reuses a server.** `reuseExistingServer` on 3000 silently
+  attaches to whatever `next dev` is serving, so the suite passes or fails for reasons unrelated to
+  the build under test. The config also sets `channel: "chromium"`: `playwright install --no-shell`
+  skips `chrome-headless-shell`, which is exactly what default headless mode launches, so every spec
+  fails with "Executable doesn't exist".
+- **The first request to the deployment pays a cold start.** One spec timing out on `page.goto` while
+  the rest pass is a boot, not a regression. `playwright.config.ts` raises the timeout only when
+  `E2E_BASE_URL` is remote.
+- **`vercel link` overwrites `.env.local`** in the directory it runs in, silently dropping local dev
+  values. Put `API_BASE_URL` and `REVALIDATE_SECRET` back afterwards.
+- **Prettier's scope is `web/` only.** Markdown at the repo root and in `docs/` is not format-checked
+  by CI, so don't expect `prettier --check` to catch anything there.

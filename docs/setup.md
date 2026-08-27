@@ -115,15 +115,37 @@ so if you run it, put `API_BASE_URL` and `REVALIDATE_SECRET` back.
 
 ### The CI-equivalent sweep
 
-What GitHub Actions runs. A change is not finished while this would be red:
+What GitHub Actions runs. A change is not finished while this would be red, and
+`.github/workflows/ci.yml` is the authority — a local sweep that is a *subset* of CI is worse than
+none, because it buys confidence CI then takes away.
 
 ```bash
 cd api
-uv sync --locked && uv run ruff check . && uv run ruff format --check . && uv run pytest -q
-
-cd ../web
-pnpm install --frozen-lockfile && pnpm lint && pnpm exec prettier --check . && pnpm test && pnpm build
+uv sync --locked
+uv run ruff check .
+uv run ruff format --check .
+uv run alembic upgrade head
+uv run python -m app.seed --no-revalidate
+uv run python -m app.seed --no-revalidate    # twice: CI checks the upsert is idempotent
+uv run pytest -q
 ```
+
+The web job runs **against a live API**, so bring the stack up first — a build that fails "collecting
+page data" is usually a missing API rather than a broken page:
+
+```bash
+cd web
+pnpm install --frozen-lockfile
+pnpm lint
+pnpm exec prettier --check .
+pnpm test
+pnpm build                    # output must contain `- Cache Components enabled`
+pnpm bundle:check             # after the build, not before
+pnpm exec playwright test
+```
+
+`pnpm test`, `pnpm bundle:check`, and the Playwright run are the three most often skipped locally, and
+all three are in CI.
 
 > **Never pipe any of these through `tail` or `head`.** The pipe replaces the command's exit status
 > with the pager's, so a failing suite reports success. This repo has been bitten by it. Redirect to

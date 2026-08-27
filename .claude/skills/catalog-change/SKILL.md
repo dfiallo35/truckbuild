@@ -84,6 +84,35 @@ Re-seeding twice and getting identical row counts is the real test of the upsert
 public page and confirm the change actually surfaced — if Postgres is right and the page is not, the
 problem is a cache tag, not the catalog.
 
+## Reaching production
+
+**Merging a catalog change does not change the live site.** `catalog.yaml` is content, and no deploy
+loads it -- the site is deployed at <https://truckbuild.vercel.app>, and its catalog lives in Neon.
+A change that stops at "merged" is a change nobody can see.
+
+After the PR lands, seed production from your machine against Neon's **direct** URL:
+
+```bash
+cd api
+export DATABASE_URL=$(grep '^DATABASE_URL=' ../.env.production.local | cut -d= -f2-)
+uv run alembic upgrade head      # only if the shape changed -- see `alembic-migration`
+uv run python -m app.seed        # NOTE: no --no-revalidate here
+```
+
+Dropping `--no-revalidate` is the point: the seed busts the web app's `catalog` and
+`platform-<slug>` tags on success, and without that the rows are new while the public pages keep
+serving what they cached. Use `--no-revalidate` only when there is no web app to tell, as CI does.
+
+Then confirm the change actually surfaced, rather than assuming:
+
+```bash
+curl -s https://truckbuild-api.vercel.app/v1/catalog | jq '.platforms[].slug'
+curl -s https://truckbuild.vercel.app/ | grep -oE '\$[0-9,]+' | sort -u
+```
+
+If the API shows the new value and the page does not, the problem is a cache tag, not the catalog --
+see `cache-and-revalidation`.
+
 ## Renaming a slug is a breaking change
 
 Slugs are the public identifiers. They appear in `/builds/<slug>`, `/configurator/<slug>`,
