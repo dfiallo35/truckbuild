@@ -2,15 +2,26 @@
 
 Postgres remains the runtime source of truth; this file only keeps it in sync with the
 version-controlled seed content. Run with ``python -m app.seed``.
+
+Loading the catalog is a catalog change, so the run finishes by busting the web app's cache tags
+-- otherwise the rows are new and the public pages keep serving what they cached hours ago. Pass
+``--no-revalidate`` where there is no web app to tell (CI, a database being prepared ahead of a
+deploy); it is opt-out rather than opt-in because a stale public price is the costlier mistake.
 """
 
+import argparse
+import logging
 from pathlib import Path
 
 import yaml
 from sqlmodel import Session, select
 
+from app.config import get_settings
 from app.db import engine
 from app.models import Asset, AssetKind, Option, OptionGroup, OptionRule, Platform
+from app.services.revalidate import revalidate, tags_for_platforms
+
+logger = logging.getLogger(__name__)
 
 CATALOG_PATH = Path(__file__).resolve().parent.parent / "seed" / "catalog.yaml"
 
@@ -153,7 +164,9 @@ def _sync_rules(session: Session, rules_data: list[dict]) -> None:
         )
 
 
-def seed(session: Session, catalog: dict | None = None) -> None:
+def seed(session: Session, catalog: dict | None = None) -> list[str]:
+    """Load the catalog and return the slugs of the platforms it covers, which is what the
+    caller needs to name the cache tags the load affected."""
     if catalog is None:
         with CATALOG_PATH.open() as f:
             catalog = yaml.safe_load(f)
@@ -171,10 +184,32 @@ def seed(session: Session, catalog: dict | None = None) -> None:
     _sync_rules(session, catalog["rules"])
     session.commit()
 
+    return [platform_data["slug"] for platform_data in catalog["platforms"]]
 
-def main() -> None:
+
+def main(argv: list[str] | None = None) -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--no-revalidate",
+        action="store_true",
+        help="skip the web app cache revalidation (no web app to tell, e.g. in CI)",
+    )
+    args = parser.parse_args(argv)
+
     with Session(engine) as session:
-        seed(session)
+        slugs = seed(session)
+    logger.info("seeded %d platform(s): %s", len(slugs), ", ".join(slugs))
+
+    if args.no_revalidate:
+        logger.info("skipping cache revalidation (--no-revalidate)")
+        return
+
+    # Failures are logged by the service and deliberately do not fail the seed: the catalog is
+    # already loaded, and exiting non-zero here would fail a deploy over a cache that can be
+    # dropped by hand with POST /v1/admin/revalidate.
+    revalidate(tags_for_platforms(slugs), get_settings())
 
 
 if __name__ == "__main__":

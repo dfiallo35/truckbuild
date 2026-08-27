@@ -5,9 +5,11 @@ import logging
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException
 
 from app.config import get_settings
-from app.errors import validation_error_handler
+from app.errors import http_error_handler, validation_error_handler
+from app.routers.admin import router as admin_router
 from app.routers.catalog import router as catalog_router
 from app.routers.quotes import router as quotes_router
 
@@ -35,9 +37,11 @@ app.add_middleware(
 # Every rejection leaves this API in one shape, FastAPI's own 422 included, so the web app
 # has a single error body to parse and render beside the field at fault. See app/errors.py.
 app.add_exception_handler(RequestValidationError, validation_error_handler)
+app.add_exception_handler(HTTPException, http_error_handler)
 
 app.include_router(catalog_router)
 app.include_router(quotes_router)
+app.include_router(admin_router)
 
 
 @app.get("/healthz", tags=["meta"])

@@ -7,10 +7,14 @@ not a fact, so the field simply does not exist here and an extra one is dropped 
 """
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.enums import QuoteKind
+
+if TYPE_CHECKING:  # a wire shape should not need the table at runtime, only to describe one
+    from app.models import Quote
 
 
 class ContactIn(BaseModel):
@@ -72,10 +76,40 @@ class QuoteOut(BaseModel):
 
 
 class QuoteDetail(QuoteOut):
-    """The whole lead, including the details only staff should see. Used to render the emails,
-    and by the admin endpoints in stage 6 -- never returned to the browser that submitted it."""
+    """The whole lead, including the details only staff should see. Used to render the emails
+    and by the admin endpoints -- never returned to the browser that submitted it."""
 
     contact: ContactIn
     intended_use: str
     timeline: str
     notes: str
+
+    @classmethod
+    def from_row(cls, quote: "Quote") -> "QuoteDetail":
+        """Read a stored lead back out. The one builder for both callers -- the submission
+        response and the admin detail endpoint -- so a lead reads the same however it is
+        reached, and a new field cannot reach one of them and not the other."""
+        return cls(
+            ref=quote.ref,
+            kind=quote.kind,
+            platform_slug=quote.platform_slug,
+            platform_name=quote.platform_name,
+            base_price_cents=quote.base_price_cents,
+            total_cents=quote.total_cents,
+            lines=[
+                QuoteLineOut(
+                    group_name=line.group_name,
+                    option_slug=line.option_slug,
+                    option_name=line.option_name,
+                    price_delta_cents=line.price_delta_cents,
+                )
+                for line in quote.lines
+            ],
+            created_at=quote.created_at,
+            contact=ContactIn(
+                name=quote.contact_name, email=quote.contact_email, phone=quote.contact_phone
+            ),
+            intended_use=quote.intended_use,
+            timeline=quote.timeline,
+            notes=quote.notes,
+        )

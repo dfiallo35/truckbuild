@@ -120,7 +120,7 @@ of opening a second one that will conflict.
 The build is split into eight staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-Stages 0–5 are complete; Stage 6 (admin and cache revalidation) is next.
+Stages 0–6 are complete; Stage 7 (polish and deploy) is next.
 
 Supporting docs: `docs/domain-model.md` (entities, vocabulary, the placeholder catalog and its compatibility
 rules), `docs/testing.md` (what each layer tests and with which tool), `docs/decisions.md` (locked-in choices,
