@@ -47,6 +47,25 @@ def test_get_platform_by_slug_returns_nested_shape() -> None:
     assert body["hero_image"]["url"]
 
 
+def test_get_platform_carries_the_viewer_composite() -> None:
+    """The configurator viewer stacks the platform base layer plus one layer per selected
+    option; an option with nothing to show contributes ``null`` rather than being omitted."""
+    body = client.get("/v1/platforms/bristlecone").json()
+    assert body["viewer_base"]["url"] == "/images/bristlecone/viewer/base.png"
+    assert body["viewer_base"]["z_index"] == 0
+
+    options = {o["slug"]: o for group in body["option_groups"] for o in group["options"]}
+    assert options["rooftop-tent"]["layer"]["url"] == "/images/bristlecone/viewer/rooftop-tent.png"
+    assert options["rooftop-tent"]["layer"]["z_index"] == 46
+    assert options["galley-full"]["layer"] is None
+
+
+def test_get_platform_carries_swatches_for_swatch_groups() -> None:
+    body = client.get("/v1/platforms/bristlecone").json()
+    finishes = next(g for g in body["option_groups"] if g["display_style"] == "swatch")
+    assert all(option["swatch"]["url"] for option in finishes["options"])
+
+
 def test_get_platform_by_slug_sends_etag_and_cache_control() -> None:
     response = client.get("/v1/platforms/bristlecone")
     assert response.headers["cache-control"]

@@ -6,7 +6,7 @@ import { z } from "zod";
  * a Zod error naming that field, not as a silent mismatch introduced by a translation layer.
  */
 
-const assetKindSchema = z.enum(["hero", "gallery"]);
+const assetKindSchema = z.enum(["hero", "gallery", "thumbnail", "layer"]);
 const selectionModeSchema = z.enum(["single", "multi"]);
 const displayStyleSchema = z.enum(["card", "swatch", "toggle"]);
 const ruleRelationSchema = z.enum(["requires", "excludes"]);
@@ -17,11 +17,23 @@ const assetSchema = z.object({
   alt_text: z.string(),
 });
 
+/**
+ * One image in the configurator viewer composite. `z_index` is what stacks it over the
+ * platform's base layer, which is always 0.
+ */
+const layerSchema = z.object({
+  url: z.string(),
+  alt_text: z.string(),
+  z_index: z.number().int(),
+});
+
 const optionSchema = z.object({
   slug: z.string(),
   name: z.string(),
   price_delta_cents: z.number().int(),
   description: z.string(),
+  layer: layerSchema.nullable(),
+  swatch: assetSchema.nullable(),
 });
 
 const optionGroupSchema = z.object({
@@ -48,6 +60,7 @@ export const platformSchema = z.object({
   spec_highlights: z.array(z.string()),
   standard_equipment: z.array(z.string()),
   hero_image: assetSchema.nullable(),
+  viewer_base: layerSchema.nullable(),
   gallery: z.array(assetSchema),
   option_groups: z.array(optionGroupSchema),
   rules: z.array(optionRuleSchema),
@@ -58,6 +71,7 @@ const catalogSchema = z.object({
 });
 
 export type Asset = z.infer<typeof assetSchema>;
+export type Layer = z.infer<typeof layerSchema>;
 export type Option = z.infer<typeof optionSchema>;
 export type OptionGroup = z.infer<typeof optionGroupSchema>;
 export type OptionRule = z.infer<typeof optionRuleSchema>;

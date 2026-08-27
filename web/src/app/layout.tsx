@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Inter, Oswald } from "next/font/google";
 
-import { Footer } from "@/components/Footer";
-import { Header } from "@/components/Header";
 import { JsonLd } from "@/components/JsonLd";
 import { SALES_EMAIL, SALES_PHONE, SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "@/lib/site";
 
@@ -64,9 +62,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="bg-canvas text-ink flex min-h-full flex-col">
         <JsonLd data={organizationJsonLd} />
-        <Header />
-        <main className="flex flex-1 flex-col">{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );

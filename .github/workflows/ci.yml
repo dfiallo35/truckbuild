@@ -23,7 +23,7 @@ jobs:
       - run: uv run pytest -q
 
   web:
-    name: Web — lint & build
+    name: Web — lint, test & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,4 +44,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm exec prettier --check .
+      # The TypeScript half of the pricing mirror. It reads fixtures/pricing-cases.json and
+      # api/seed/catalog.yaml from the repo root, so it fails here the moment the Python half
+      # moves without it (see .claude/skills/pricing-mirror).
+      - run: pnpm test
       - run: pnpm build
