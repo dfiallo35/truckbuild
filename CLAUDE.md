@@ -126,7 +126,10 @@ of opening a second one that will conflict.
 The build is split into eight staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-Stages 0–6 are complete; Stage 7 (polish and deploy) is next.
+All eight stages (0–7) are complete. The site is deployed at <https://truckbuild.vercel.app>
+with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
+and also records why the API runs as a Vercel Python function rather than the container
+`api/render.yaml` still describes.
 
 Supporting docs: `docs/domain-model.md` (entities, vocabulary, the placeholder catalog and its compatibility
 rules), `docs/testing.md` (what each layer tests and with which tool), `docs/decisions.md` (locked-in choices,
