@@ -32,6 +32,7 @@ pnpm install                   # add --fetch-timeout 600000 on slow connections
 pnpm dev                       # :3000
 pnpm build
 pnpm lint                      # eslint
+pnpm test                      # vitest run — the TS half of the pricing mirror
 pnpm format                    # prettier --write .  (CI runs `prettier --check .`)
 ```
 
@@ -83,7 +84,17 @@ drives most structural decisions and is documented in `docs/decisions.md`:
 ### Build state
 
 Configurator selection is encoded in the URL query string (`?o=slug-a,slug-b`), which gives shareable,
-refresh-safe, back-button-correct builds with no database round trip.
+refresh-safe, back-button-correct builds with no database round trip. `web/src/lib/build.ts` owns the
+encoding; it repairs a URL rather than trusting it (unknown slugs dropped, single-select groups
+de-duplicated, required groups defaulted) because a shared build URL outlives the catalog it was
+built from. The URL is written with `history.replaceState`, not a router navigation.
+
+### Route groups
+
+Marketing pages live under `web/src/app/(site)/`, whose layout carries `Header` and `Footer`. The root
+layout holds only the document shell. `/configurator/[slug]` sits outside that group so it can be
+full-bleed with its own minimal bar — a nested layout cannot remove a parent's chrome. Route groups add
+no URL segment, so paths are unaffected.
 
 ## Working in this repo
 
@@ -101,7 +112,7 @@ of opening a second one that will conflict.
 The build is split into eight staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-Stage 0 (foundations) is complete; Stage 1 (backend catalog) is next.
+Stages 0–4 are complete; Stage 5 (quote pipeline) is next.
 
 Supporting docs: `docs/domain-model.md` (entities, vocabulary, the placeholder catalog and its compatibility
 rules), `docs/testing.md` (what each layer tests and with which tool), `docs/decisions.md` (locked-in choices,

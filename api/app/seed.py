@@ -51,6 +51,17 @@ def _upsert_platform_assets(session: Session, platform: Platform, data: dict) ->
         asset.alt_text = image["alt_text"]
         session.add(asset)
 
+    # Layer 0 of the configurator viewer composite. Option layers carry the same kind but hang
+    # off an option instead, at their own z-index.
+    viewer_base = data.get("viewer_base")
+    if viewer_base is not None:
+        asset = by_key.pop((AssetKind.layer, 0), None) or Asset(
+            platform_id=platform.id, kind=AssetKind.layer, sort_order=0, url="", alt_text=""
+        )
+        asset.url = viewer_base["url"]
+        asset.alt_text = viewer_base["alt_text"]
+        session.add(asset)
+
     for stale in by_key.values():
         session.delete(stale)
 
@@ -91,6 +102,36 @@ def _upsert_option(session: Session, group: OptionGroup, sort_order: int, data: 
     return option
 
 
+def _upsert_option_assets(session: Session, option: Option, data: dict) -> None:
+    """An option carries at most one ``layer`` (its contribution to the viewer composite, with
+    ``sort_order`` holding the z-index) and one ``thumbnail`` (the chip a swatch group renders).
+    Either may be absent -- an option without a layer simply contributes nothing to the viewer."""
+    existing = session.exec(select(Asset).where(Asset.option_id == option.id)).all()
+    by_kind = {asset.kind: asset for asset in existing}
+
+    layer = data.get("layer")
+    if layer is not None:
+        asset = by_kind.pop(AssetKind.layer, None) or Asset(
+            option_id=option.id, kind=AssetKind.layer, url="", alt_text=""
+        )
+        asset.url = layer["url"]
+        asset.alt_text = layer["alt_text"]
+        asset.sort_order = layer["z"]
+        session.add(asset)
+
+    swatch = data.get("swatch")
+    if swatch is not None:
+        asset = by_kind.pop(AssetKind.thumbnail, None) or Asset(
+            option_id=option.id, kind=AssetKind.thumbnail, url="", alt_text=""
+        )
+        asset.url = swatch["url"]
+        asset.alt_text = swatch["alt_text"]
+        session.add(asset)
+
+    for stale in by_kind.values():
+        session.delete(stale)
+
+
 def _sync_rules(session: Session, rules_data: list[dict]) -> None:
     slug_to_id = {option.slug: option.id for option in session.exec(select(Option)).all()}
     wanted = {
@@ -123,7 +164,8 @@ def seed(session: Session, catalog: dict | None = None) -> None:
         for group_order, group_data in enumerate(platform_data["option_groups"]):
             group = _upsert_option_group(session, platform, group_order, group_data)
             for option_order, option_data in enumerate(group_data["options"]):
-                _upsert_option(session, group, option_order, option_data)
+                option = _upsert_option(session, group, option_order, option_data)
+                _upsert_option_assets(session, option, option_data)
 
     session.flush()
     _sync_rules(session, catalog["rules"])

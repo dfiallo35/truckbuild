@@ -15,11 +15,22 @@ class AssetOut(BaseModel):
     alt_text: str
 
 
+class LayerOut(BaseModel):
+    """One image in the configurator viewer composite. ``z_index`` is what stacks it; the
+    platform's own base layer is always 0."""
+
+    url: str
+    alt_text: str
+    z_index: int
+
+
 class OptionOut(BaseModel):
     slug: str
     name: str
     price_delta_cents: int
     description: str
+    layer: LayerOut | None = None
+    swatch: AssetOut | None = None
 
 
 class OptionGroupOut(BaseModel):
@@ -46,6 +57,7 @@ class PlatformOut(BaseModel):
     spec_highlights: list[str]
     standard_equipment: list[str]
     hero_image: AssetOut | None
+    viewer_base: LayerOut | None
     gallery: list[AssetOut]
     option_groups: list[OptionGroupOut]
     rules: list[OptionRuleOut]
