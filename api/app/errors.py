@@ -4,13 +4,15 @@ Every rejection -- a malformed body, a broken option combination, a rate limit -
 ``{code, message, errors[]}`` with ``errors[].field`` naming the input at fault. The web app
 renders those beside the field they belong to, and it can only do that if there is a single
 shape to parse rather than one per failure mode. FastAPI's own 422 body is reshaped into this
-by ``validation_error_handler`` for the same reason.
+by ``validation_error_handler``, and its ``{"detail": ...}`` body by ``http_error_handler``, for
+the same reason.
 """
 
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException
 
 
 class FieldError(BaseModel):
@@ -58,4 +60,28 @@ async def validation_error_handler(_: Request, exc: RequestValidationError) -> J
             FieldError(field=_field_path(error["loc"]), message=error["msg"], code=error["type"])
             for error in exc.errors()
         ],
+    )
+
+
+# ``raise HTTPException(404, "...")`` is the idiomatic way to reject from inside a dependency,
+# which is how the admin guard has to work -- a dependency cannot return a response. These names
+# keep such a rejection carrying the same machine-readable ``code`` as one raised by hand.
+_CODES = {
+    401: "unauthorized",
+    403: "forbidden",
+    404: "not_found",
+    405: "method_not_allowed",
+    502: "bad_gateway",
+}
+
+
+async def http_error_handler(_: Request, exc: HTTPException) -> JSONResponse:
+    """Reshape ``{"detail": ...}`` into the one error body. Registered for Starlette's own
+    exception too, so a request for a route that does not exist answers in the same shape as a
+    request for a platform that does not."""
+    return error_response(
+        status_code=exc.status_code,
+        code=_CODES.get(exc.status_code, "error"),
+        message=str(exc.detail),
+        headers=dict(exc.headers) if exc.headers else None,
     )

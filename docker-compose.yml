@@ -21,8 +21,13 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       DATABASE_URL: postgresql+psycopg://truckbuild:truckbuild@db:5432/truckbuild
-      WEB_BASE_URL: http://localhost:3000
+      # `pnpm dev` runs on the host, so localhost:3000 from inside this container is this
+      # container. Without the gateway alias every cache revalidation from the API -- the seed's
+      # included -- posts into the void and the site keeps serving the old catalog.
+      WEB_BASE_URL: http://host.docker.internal:3000
       ENVIRONMENT: development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - path: .env
         required: false

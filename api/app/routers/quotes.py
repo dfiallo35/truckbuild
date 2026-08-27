@@ -23,14 +23,7 @@ from app.config import Settings, get_settings
 from app.db import get_session
 from app.errors import FieldError, error_response
 from app.models import Option, OptionRule, Platform, Quote, QuoteKind, QuoteLine
-from app.schemas.quote import (
-    ContactIn,
-    EnquiryCreate,
-    QuoteCreate,
-    QuoteDetail,
-    QuoteLineOut,
-    QuoteOut,
-)
+from app.schemas.quote import EnquiryCreate, QuoteCreate, QuoteDetail, QuoteOut
 from app.services import mailer
 from app.services.pricing import PriceableOption, PriceablePlatform, price_build
 from app.services.ratelimit import RateLimiter
@@ -205,31 +198,6 @@ def _save(session: Session, quote: Quote) -> Quote:
     raise RuntimeError(f"could not allocate a unique quote ref in {REF_ATTEMPTS} attempts")
 
 
-def _detail_of(quote: Quote, contact: ContactIn) -> QuoteDetail:
-    return QuoteDetail(
-        ref=quote.ref,
-        kind=quote.kind,
-        platform_slug=quote.platform_slug,
-        platform_name=quote.platform_name,
-        base_price_cents=quote.base_price_cents,
-        total_cents=quote.total_cents,
-        lines=[
-            QuoteLineOut(
-                group_name=line.group_name,
-                option_slug=line.option_slug,
-                option_name=line.option_name,
-                price_delta_cents=line.price_delta_cents,
-            )
-            for line in quote.lines
-        ],
-        created_at=quote.created_at,
-        contact=contact,
-        intended_use=quote.intended_use,
-        timeline=quote.timeline,
-        notes=quote.notes,
-    )
-
-
 def _out_of(detail: QuoteDetail) -> QuoteOut:
     return QuoteOut(**detail.model_dump(exclude={"contact", "intended_use", "timeline", "notes"}))
 
@@ -307,7 +275,7 @@ def create_quote(
         ],
     )
 
-    detail = _detail_of(_save(session, quote), payload.contact)
+    detail = QuoteDetail.from_row(_save(session, quote))
     logger.info(
         "stored quote %s for %s at %s", detail.ref, detail.platform_slug, detail.total_cents
     )
@@ -359,7 +327,7 @@ def create_enquiry(
         source_ip=_client_ip(request),
     )
 
-    detail = _detail_of(_save(session, quote), payload.contact)
+    detail = QuoteDetail.from_row(_save(session, quote))
     logger.info("stored enquiry %s", detail.ref)
     background.add_task(mailer.send_lead_emails, detail, settings)
     return _out_of(detail)

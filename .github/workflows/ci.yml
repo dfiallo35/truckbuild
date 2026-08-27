@@ -44,10 +44,12 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run alembic upgrade head
-      - run: uv run python -m app.seed
+      # --no-revalidate: a seed run tells the web app to drop its catalog cache, and there is no
+      # web app in this job. The webhook itself is covered by tests/test_revalidate.py.
+      - run: uv run python -m app.seed --no-revalidate
       # Re-running the seed must not change anything; the upsert-by-slug contract is what makes
       # it safe to run on every deploy.
-      - run: uv run python -m app.seed
+      - run: uv run python -m app.seed --no-revalidate
       - run: uv run pytest -q
 
   web:
@@ -92,7 +94,9 @@ jobs:
         working-directory: api
       - run: uv run alembic upgrade head
         working-directory: api
-      - run: uv run python -m app.seed
+      # Nothing to revalidate: the web app is built further down but is not running yet, and
+      # the build reads the catalog through the API rather than through a cache.
+      - run: uv run python -m app.seed --no-revalidate
         working-directory: api
       - name: Start the API
         working-directory: api
