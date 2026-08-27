@@ -141,3 +141,30 @@ jobs:
           fi
           cat build.log
           grep -q -- "- Cache Components enabled" build.log
+
+      # Next 16's build summary says which routes prerendered but not how much script each one
+      # ships, so without this the configurator could grow a heavy dependency and CI would stay
+      # green. Reads the sizes back out of the prerendered HTML; see web/scripts.
+      - name: Client JS budgets
+        run: pnpm bundle:check
+
+      # Only Chromium. The specs assert layout, accessibility and pricing arithmetic rather
+      # than rendering quirks, and three engines would triple the slowest job in the workflow
+      # to re-prove the same things.
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Runs against `pnpm start` on the build produced above, which playwright.config.ts
+      # starts itself -- the production build rather than `next dev`, because prerendering and
+      # Cache Components are among the things being checked. Includes the lead-submitting spec:
+      # the database here is a throwaway service container, so there is no inbox to spam.
+      - name: End-to-end and accessibility specs
+        run: pnpm exec playwright test
+
+      - uses: actions/upload-artifact@v4
+        # `always()` rather than `failure()`: a flaky pass leaves a trace worth reading too.
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: web/playwright-report/
+          retention-days: 7

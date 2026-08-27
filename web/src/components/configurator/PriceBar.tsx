@@ -45,7 +45,10 @@ export function PriceBar({
         <span className="font-data text-ink-faint hidden text-[0.625rem] tracking-[0.2em] uppercase sm:block">
           Build total
         </span>
-        <span className="font-display text-accent text-xl tabular-nums md:text-2xl">
+        <span
+          data-testid="build-total"
+          className="font-display text-accent text-xl tabular-nums md:text-2xl"
+        >
           {formatCents(totalCents)}
         </span>
 

@@ -40,6 +40,16 @@ class Settings(BaseSettings):
     quote_rate_limit_window_seconds: int = Field(default=600)
     quote_min_submit_ms: int = Field(default=2500)
 
+    # Error tracking (app/services/telemetry.py). Absent everywhere but production, where the
+    # SDK stays inert without a DSN -- so leaving this unset is a supported configuration, not
+    # a broken one. Structured request logs are emitted either way.
+    sentry_dsn: str | None = Field(default=None)
+    sentry_traces_sample_rate: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    # Stamped onto every error report so a regression can be pinned to a deploy. Render sets
+    # this from the deployed commit; locally it is simply unknown.
+    release: str | None = Field(default=None)
+
     environment: str = Field(default="development")
 
 

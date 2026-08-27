@@ -65,8 +65,20 @@ pnpm dev                  # :3000
 | `cd api && uv run ruff check .` | Backend lint |
 | `cd api && uv run ruff format .` | Backend format |
 | `cd web && pnpm build` | Production build |
+| `cd web && pnpm test` | Frontend unit tests (Vitest) |
+| `cd web && pnpm e2e` | End-to-end and accessibility specs (Playwright + axe) |
+| `cd web && pnpm bundle:check` | Per-route client JS budgets, after a build |
 | `cd web && pnpm lint` | Frontend lint |
 | `cd web && pnpm format` | Frontend format |
+
+`pnpm e2e` starts its own production server. Point it at a deployment with
+`E2E_BASE_URL=https://… pnpm e2e`.
+
+## Deploying
+
+Neon, then Render, then Vercel — in that order, because each needs the one before it. The whole
+stack is on free tiers; the runbook, the secrets, the failure modes, and what the free tiers cost
+you in exchange are in [docs/deploy.md](docs/deploy.md).
 
 ## Environment variables
 

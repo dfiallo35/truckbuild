@@ -15,6 +15,7 @@ export function PlatformCard({ platform }: PlatformCardProps) {
   return (
     <Link
       href={`/builds/${platform.slug}`}
+      data-testid="platform-card"
       className="group focus-visible:outline-accent flex flex-col gap-4 focus-visible:outline-2 focus-visible:outline-offset-4"
     >
       {platform.hero_image ? (

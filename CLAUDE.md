@@ -33,8 +33,14 @@ pnpm dev                       # :3000
 pnpm build
 pnpm lint                      # eslint
 pnpm test                      # vitest run — the TS half of the pricing mirror
+pnpm e2e                       # playwright — configurator, a11y (axe), responsive
+pnpm bundle:check              # per-route client JS budgets (run after `pnpm build`)
 pnpm format                    # prettier --write .  (CI runs `prettier --check .`)
 ```
+
+`pnpm e2e` starts its own production server. Point it at a deployment with
+`E2E_BASE_URL=https://… pnpm e2e` — that is how the production smoke test is run. Specs live in
+`web/e2e/` (Playwright), not `web/tests/` (Vitest); the two runners must not share a directory.
 
 Stack:
 
@@ -151,5 +157,10 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
 
 - `RUN --mount=type=cache` requires BuildKit, which is not enabled on every daemon. `api/Dockerfile`
   deliberately avoids cache mounts.
+- **Adding a Python dependency needs `docker compose up -d --build --renew-anon-volumes api`.** The
+  Compose file keeps an anonymous volume on `/srv/.venv` so the bind-mounted host source does not
+  shadow the image's virtualenv — and Docker reuses that volume across rebuilds, so `--build` alone
+  leaves the container running the old venv. It fails as `ModuleNotFoundError` for a package that is
+  plainly installed, and the API then hangs rather than erroring, which reads like a database problem.
 - Never pipe a command whose exit status matters (e.g. `pnpm install`) through `tail` — it masks the
   exit code.

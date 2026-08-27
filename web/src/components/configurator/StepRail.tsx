@@ -97,7 +97,10 @@ export function StepRail({
               >
                 {group.name}
               </span>
-              <span className="text-ink-faint hidden truncate text-[0.6875rem] md:block">
+              {/* `ink-muted`, not `ink-faint`. This line sits on `canvas-overlay` when its
+                  step is the active one, where faint lands at about 4.3:1 -- under the 4.5:1
+                  AA floor for text this size. Muted clears it on both backgrounds. */}
+              <span className="text-ink-muted hidden truncate text-[0.6875rem] md:block">
                 {chosen.length === 0
                   ? group.required
                     ? "Choose one"
