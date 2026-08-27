@@ -27,6 +27,15 @@ unreliable at exactly the things this schema depends on:
 
 ## Workflow
 
+Before editing the model, get its blast radius from the CodeGraph index at `.codegraph/`:
+
+```bash
+codegraph explore "Option"     # the SQLModel table, its Pydantic schema, the router, the seed upsert
+```
+
+A shape change is only ever finished at the far end of that list, and reading it first is what keeps
+the migration from being the only thing that got updated. Then generate:
+
 ```bash
 docker compose exec api alembic revision --autogenerate -m "add option layer image"
 ```

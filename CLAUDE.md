@@ -98,6 +98,14 @@ no URL segment, so paths are unaffected.
 
 ## Working in this repo
 
+**The repo is indexed by CodeGraph.** `codegraph explore "<symbol or question>"` (or the
+`codegraph_explore` MCP tool) returns the verbatim source of the relevant symbols plus the call paths
+and blast radius between them, across `api/` and `web/` in one query — reach for it before grep when
+locating or understanding code. Most work here crosses the two services, which is exactly where a
+grep-per-directory loop leaves a link out. The index at `.codegraph/` is local machine state, rebuilt
+from source and gitignored; it can go stale after large refactors, so treat a symbol it names as a
+claim to verify, not a fact. Skip it for non-symbol text — a YAML key, a slug string, a hex color.
+
 **`gh` is not installed on this machine.** GitHub operations — PRs, issues, checks, reviews — go
 through the GitHub MCP tools (`mcp__github__*`), which are deferred and must be loaded with
 `ToolSearch("select:...")` before they can be called. Repo coordinates are `dfiallo35/truckbuild`,

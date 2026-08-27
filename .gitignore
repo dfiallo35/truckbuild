@@ -18,5 +18,9 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 
+# CodeGraph — the symbol index is built from the source on each machine,
+# so it is local state, not shared state. Never commit the database.
+.codegraph/
+
 # OS / editor
 .DS_Store

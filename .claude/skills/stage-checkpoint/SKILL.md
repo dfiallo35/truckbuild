@@ -26,10 +26,13 @@ the structure, and skipping it moves the failure later where it costs more.
 4. **Run the stage's own checkpoint commands, unmodified**, and capture the actual output.
 5. **Run the CI-equivalent sweep** (below). A stage is not done while CI would fail.
 6. **Check the "Done when" criteria.** These are often qualitative — "no page component knows the API
-   exists", "`pricing.py` imports nothing from `fastapi`" — and are genuinely checkable:
+   exists", "`pricing.py` imports nothing from `fastapi`" — and are genuinely checkable. Criteria about
+   text in a file are grep's job; criteria about who calls what are CodeGraph's, since an indirect call
+   through a helper reads as clean under grep:
    ```bash
    grep -rn "fastapi\|sqlmodel" api/app/services/pricing.py api/app/services/rules.py
    grep -rniE "#[0-9a-f]{3,8}" web/src/components/    # tokens only, no hardcoded colors
+   codegraph explore "what calls the catalog fetch functions in web/src/lib/api.ts"
    ```
 7. **Report against evidence**, then update status.
 

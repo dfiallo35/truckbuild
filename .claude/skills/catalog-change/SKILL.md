@@ -24,6 +24,21 @@ web/src/lib/api.ts          Zod parse at the boundary
 rendered page
 ```
 
+## Locating the chain
+
+This repo is indexed by CodeGraph (`.codegraph/` at the root, spanning both services). One query
+returns the verbatim source of every link in the chain above plus who calls what, which is faster and
+less lossy than grepping for a field name across `api/` and `web/` separately:
+
+```bash
+codegraph explore "how does a platform go from catalog.yaml through the router to the rendered page"
+codegraph explore "OptionGroup"      # model, schema, Zod parse, and the components that render it
+```
+
+The blast-radius section of that output is the practical answer to "what else does this field touch" —
+use it to check nothing in the seven-step list below got skipped. Fall back to grep only for things
+that are not symbols, such as a YAML key or a slug string.
+
 ## Two kinds of change
 
 Work out which one you have before touching anything — they need different amounts of the chain.
