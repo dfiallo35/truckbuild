@@ -111,6 +111,23 @@ A module carries only the layers it needs (`admin` owns no tables, so it has no 
 Three imports are pinned as named `ignore_imports` exceptions with the stage that removes each;
 that list should only ever shrink.
 
+**Two more rules arrive with stages 9–13, and are not true yet.** The layout those stages build is
+adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/property-management) —
+pure pydantic entities in `domain/models.py`, SQLModel tables in
+`infrastructure/postgres/tables.py`, a mapper between, a `BaseUseCase` template method
+(`pre_run → validate → run → post_run`) and its CRUD subclasses in a shared `core`. When it lands:
+
+- **A `domain/` imports no ORM.** Today every entity *is* a SQLModel table, so `domain` imports
+  `sqlmodel` and only `pricing.py` and `rules.py` are held to the stricter rule. The entity split in
+  stages 10–12 widens it to every module. This is the one line that measures whether the migration
+  worked.
+- **A `presentation/` writes no query.** Today all three routers compose their own SQL.
+
+Until stage 9 lands, write new code against the layout that exists, not the one being planned.
+`docs/stages/09-core-kernel.md` carries the target tree and the named deviations from the reference
+repo (FastAPI `Depends` rather than `dependency_injector`, sync rather than async,
+`limit`/`offset` rather than `page`/`size`, SQLModel tables, no i18n).
+
 ### Build state
 
 Configurator selection is encoded in the URL query string (`?o=slug-a,slug-b`), which gives shareable,
@@ -151,8 +168,10 @@ The build is split into staged, independently reviewable steps in `docs/PLAN.md`
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
 Stages 0–8 are complete. Stage 8 moved `api/` into the modular-monolith layout described above;
-stages 9–11 do the untangling it was shaped to receive — repositories (9), one use case per
-endpoint (10), then seeding, web and docs (11). The site is deployed at <https://truckbuild.vercel.app>
+stages 9–13 do the untangling it was shaped to receive — the shared `core` kernel of base classes
+(9), then one module at a time onto it, `catalog` (10), `quotes` (11), `admin` (12), then seeding,
+web and docs (13). Every one of those stages keeps the wire contract byte-identical and diffs
+against a golden capture to prove it. The site is deployed at <https://truckbuild.vercel.app>
 with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
 and also records why the API runs as a Vercel Python function rather than the container
 `api/render.yaml` still describes.

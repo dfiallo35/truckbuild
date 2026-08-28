@@ -212,7 +212,7 @@ api/
       catalog/          platforms · option groups · options · rules · assets
         domain/         entities/ · enums.py · pricing.py · rules.py
                         ↑ pricing and rules are pure, mirrored, test-first
-        application/    infrastructure/             (stages 9–10 fill these)
+        application/    infrastructure/             (stages 9–12 fill these)
         presentation/   router.py · schemas.py
       quotes/           lead submission, priced by the server
         domain/         entities/ · enums.py · refs.py · spam.py
