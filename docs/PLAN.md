@@ -23,6 +23,12 @@ builds.
 
 Each stage is independently reviewable and ends in a checkpoint that must pass before the next begins.
 
+Stages 0–7 built and shipped the application. Stages 8–11 restructure the API service that
+resulted into a **modular monolith**: feature modules bounded like services, each carrying its own
+four clean-architecture layers over a shared `core`, assembled into one FastAPI app at one
+composition root. Same behaviour, same wire contract, with every boundary enforced by CI rather than
+by convention.
+
 | # | Stage | Status |
 |---|---|---|
 | 0 | [Foundations](stages/00-foundations.md) — repo, scaffolds, Compose, CI | **Complete** |
@@ -33,6 +39,10 @@ Each stage is independently reviewable and ends in a checkpoint that must pass b
 | 5 | [Quote pipeline](stages/05-quote-pipeline.md) — server-authoritative submission, email | **Complete** |
 | 6 | [Admin & revalidation](stages/06-admin-revalidation.md) — quote listing, cache webhook | **Complete** |
 | 7 | [Polish & deploy](stages/07-polish-deploy.md) — perf, a11y, Vercel + Neon | **Complete** |
+| 8 | [Modules & layers](stages/08-modules-and-layers.md) — the move, and import-linter in CI | Not started |
+| 9 | [Repositories](stages/09-repositories.md) — the queries leave the routers | Not started |
+| 10 | [Use cases](stages/10-use-cases.md) — one call per endpoint | Not started |
+| 11 | [Seeding, web & docs](stages/11-seeding-web-docs.md) — closing the migration | Not started |
 
 ## Repository layout
 
