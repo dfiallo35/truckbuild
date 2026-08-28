@@ -82,12 +82,13 @@ remains what the API reads. This is also the seam a CMS would later plug into.
 
 These are load-bearing. Breaking one does not fail loudly.
 
-**`app/services/pricing.py` and `app/services/rules.py` are pure** — no `fastapi`, no `sqlmodel`
-imports. That purity is what makes them cheap to test without a database and safe to mirror on the
-client. Both are written test-first.
+**`catalog/domain/pricing.py` and `catalog/domain/rules.py` are pure** — no `fastapi`, no
+`sqlmodel` imports. That purity is what makes them cheap to test without a database and safe to
+mirror on the client. Both are written test-first, and the rule is now checked by the
+`Pricing mirror purity` import contract rather than trusted to a docstring.
 
 **The pricing mirror is deliberate duplication.** `price_build` exists twice: Python
-(`api/app/services/pricing.py`, authoritative) and TypeScript (`web/src/lib/pricing.ts`, for instant
+(`api/app/modules/catalog/domain/pricing.py`, authoritative) and TypeScript (`web/src/lib/pricing.ts`, for instant
 UI feedback as a visitor clicks). Same for `validate_selection` / `rules.ts`. The only thing keeping
 them from drifting is that **both are tested against a single shared JSON fixture** consumed by
 pytest and Vitest — add a case on one side and the other side fails.
@@ -201,12 +202,25 @@ Telemetry is added last so it stamps the request id before anything else can fai
 ```
 api/
   app/
-    routers/     catalog.py · quotes.py · admin.py
-    services/    pricing.py · rules.py  ← pure, mirrored, test-first
-                 mailer.py · ratelimit.py · spam.py · refs.py
-                 revalidate.py · telemetry.py
-    models/      SQLModel tables          schemas/  request & response shapes
-    config.py    every env var declared    seed.py   catalog.yaml → Postgres
+    main.py             composition root — mounts each module's router
+    seed.py             catalog.yaml → Postgres
+    core/               shared by every module, imports none of them
+      config.py         every env var declared      db.py         engine & session
+      errors.py         the one error envelope      telemetry.py  request logs & Sentry
+      ratelimit.py      in-process window           revalidate.py cache-tag webhook
+    modules/
+      catalog/          platforms · option groups · options · rules · assets
+        domain/         entities/ · enums.py · pricing.py · rules.py
+                        ↑ pricing and rules are pure, mirrored, test-first
+        application/    infrastructure/             (stages 9–10 fill these)
+        presentation/   router.py · schemas.py
+      quotes/           lead submission, priced by the server
+        domain/         entities/ · enums.py · refs.py · spam.py
+        application/    infrastructure/mail.py
+        presentation/   router.py · schemas.py
+      admin/            guarded reads over quotes and catalog — owns no tables,
+        application/    so it carries no domain and no infrastructure
+        presentation/   router.py · schemas.py
   seed/catalog.yaml   versioned catalog content
   alembic/            migrations
 

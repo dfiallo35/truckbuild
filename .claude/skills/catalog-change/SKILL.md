@@ -1,6 +1,6 @@
 ---
 name: catalog-change
-description: Walks a TruckBuild catalog change all the way through both services — adding or editing a platform, option group, option, price, image, spec, or compatibility rule — so nothing is left half-wired. Use this whenever seed/catalog.yaml, app/models/, app/schemas/, or the catalog routers change, whenever someone asks to add a new truck platform or option, reprice something, rename a slug, or add a field to the catalog, and whenever catalog data appears correct in Postgres but wrong or stale on the site. The chain from YAML to a rendered page crosses seven files in two services and a cache boundary, so partial changes are the normal failure here.
+description: Walks a TruckBuild catalog change all the way through both services — adding or editing a platform, option group, option, price, image, spec, or compatibility rule — so nothing is left half-wired. Use this whenever seed/catalog.yaml or anything under api/app/modules/catalog/ changes, whenever someone asks to add a new truck platform or option, reprice something, rename a slug, or add a field to the catalog, and whenever catalog data appears correct in Postgres but wrong or stale on the site. The chain from YAML to a rendered page crosses seven files in two services and a cache boundary, so partial changes are the normal failure here.
 ---
 
 # Changing the catalog
@@ -11,18 +11,25 @@ The catalog is defined once in YAML but observed in six more places before a vis
 that stops halfway shows up as a field that is present in Postgres and absent on the page, or a Zod
 error nobody sees because the page is still serving from cache.
 
+Since stage 8 the API half of that chain is a walk **down one module** rather than across four
+directories — `api/app/modules/catalog/`, one layer at a time:
+
 ```
-api/seed/catalog.yaml       source content, version controlled
-        ↓  app/seed.py      idempotent upsert by slug
-Postgres                    runtime source of truth
-        ↓  app/models/      SQLModel tables  (+ Alembic migration if the shape changed)
-        ↓  app/schemas/     Pydantic response shape
-        ↓  app/routers/catalog.py   GET /v1/catalog, GET /v1/platforms/{slug}
-web/src/lib/api.ts          Zod parse at the boundary
+api/seed/catalog.yaml                    source content, version controlled
+        ↓  app/seed.py                   idempotent upsert by slug
+Postgres                                 runtime source of truth
+        ↓  catalog/domain/entities/      SQLModel tables (+ migration if the shape changed)
+        ↓  catalog/presentation/schemas.py   Pydantic response shape
+        ↓  catalog/presentation/router.py    GET /v1/catalog, GET /v1/platforms/{slug}
+web/src/lib/api.ts                       Zod parse at the boundary
         ↓  'use cache' + cacheTag('catalog') / cacheTag('platform-<slug>')
-        ↓  app/services/revalidate.py → POST /api/revalidate → revalidateTag
+        ↓  app/core/revalidate.py → POST /api/revalidate → revalidateTag
 rendered page
 ```
+
+Everything from `entities/` to `router.py` lives under one directory, so the API-side steps are
+siblings now. Two things still sit outside it, and both are outside on purpose: `app/seed.py` is the
+composition root's CLI, and `app/core/revalidate.py` is shared with `admin`.
 
 ## Locating the chain
 
@@ -56,13 +63,16 @@ component renders `undefined` with no error.
 
 1. **`api/seed/catalog.yaml`** — the content lives here, not in a migration and not typed into psql.
    Committing it is what keeps catalog content reviewable in diffs.
-2. **`api/app/models/`** — shape changes only. Slugs carry unique constraints.
+2. **`api/app/modules/catalog/domain/entities/`** — shape changes only. Slugs carry unique
+   constraints. A new entity file must also be imported by that package's `__init__.py`, or Alembic
+   never sees the table; `tests/test_entity_registry.py` fails if you forget.
 3. **Alembic migration** — shape changes only. Generate it, then *read it* before committing; see the
    `alembic-migration` skill for why autogenerate output is not trustworthy unreviewed.
 4. **`api/app/seed.py`** — upserts by slug so re-seeding is always safe. If you added a field, the
    upsert has to carry it, or re-seeding will quietly leave existing rows on the old value.
-5. **`api/app/schemas/` and `api/app/routers/catalog.py`** — the nested platform → groups → options →
-   rules shape goes out in one round trip. The catalog is small; splitting it costs more than it saves.
+5. **`api/app/modules/catalog/presentation/`** — `schemas.py` then `router.py`. The nested
+   platform → groups → options → rules shape goes out in one round trip. The catalog is small;
+   splitting it costs more than it saves.
 6. **`web/src/lib/api.ts`** — extend the Zod schema. Parsing rather than casting at this boundary is
    what turns a backend shape change into a clear named-field error instead of a runtime `undefined`
    several components deep.

@@ -154,7 +154,7 @@ left half-wired. Claude invokes them automatically; you can also call one by nam
 | `pricing-mirror` | Touching pricing arithmetic or compatibility rules on either side of the Python/TypeScript mirror |
 | `catalog-change` | Adding or editing a platform, option, price, or rule — the chain from `catalog.yaml` to a rendered page |
 | `cache-and-revalidation` | Adding a catalog read, changing cache tags, or a catalog edit not reaching the site |
-| `alembic-migration` | Any change under `api/app/models/` |
+| `alembic-migration` | Any change under a module's `domain/entities/` |
 | `stage-checkpoint` | Verifying a stage, or running the CI-equivalent sweep |
 | `open-pr` | Opening or inspecting a PR |
 

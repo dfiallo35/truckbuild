@@ -3,7 +3,7 @@ import { revalidateTag } from "next/cache";
 import { planRevalidation } from "@/lib/revalidate";
 
 /**
- * The other end of `api/app/services/revalidate.py`: FastAPI POSTs `{tags: [...]}` here with the
+ * The other end of `api/app/core/revalidate.py`: FastAPI POSTs `{tags: [...]}` here with the
  * shared `REVALIDATE_SECRET` when catalog rows change, and this drops the matching `use cache`
  * entries so the next request re-reads the catalog.
  *

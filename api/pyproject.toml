@@ -32,6 +32,11 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "SIM"]
 
+# Without this, ruff's import sorter guesses at which of app/ and tests/ are local and
+# reshuffles the blocks on whatever unrelated file is touched next.
+[tool.ruff.lint.isort]
+known-first-party = ["app", "tests"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
@@ -41,7 +46,99 @@ asyncio_mode = "auto"
 dev = [
     "httpx>=0.28.1",
     "httpx2>=2.12.0",
+    "import-linter>=2.6",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
     "ruff>=0.16.4",
 ]
+
+# The architecture, as something CI can fail on rather than something a reviewer has to notice.
+# See docs/stages/08-modules-and-layers.md for what each rule buys and why the boundary is drawn
+# where it is. Run with `uv run lint-imports`.
+#
+# `include_external_packages` is what lets the two purity contracts below name fastapi, httpx and
+# sqlmodel at all; without it those are unknown modules and the contracts error rather than run.
+[tool.importlinter]
+root_package = "app"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Layers within every module"
+type = "layers"
+# presentation and infrastructure are siblings -- both are adapters, and neither may reach the
+# other. `containers` applies the rule to all three modules at once, so a fourth module is
+# covered the day it is created rather than the day someone remembers to add it here.
+# Parentheses mark a layer that need not exist: admin owns no entities and no tables, so it
+# carries neither a domain nor an infrastructure -- a module carries only the layers it needs.
+layers = ["presentation | (infrastructure)", "application", "(domain)"]
+containers = ["app.modules.catalog", "app.modules.quotes", "app.modules.admin"]
+exhaustive = false
+ignore_imports = [
+    # Stage 10 replaces this with the router calling a use case that owns the mail port.
+    "app.modules.quotes.presentation.router -> app.modules.quotes.infrastructure.mail",
+    # Stage 10 moves QuoteDetail off the wire layer, so the mail adapter renders a use-case
+    # result rather than a response schema.
+    "app.modules.quotes.infrastructure.mail -> app.modules.quotes.presentation.schemas",
+]
+
+[[tool.importlinter.contracts]]
+name = "Module direction"
+# admin -> quotes -> catalog -> core, and the arrows only point one way. A layers contract over
+# the four gives the whole DAG in one rule, including "core imports no module, ever".
+type = "layers"
+layers = [
+    "app.modules.admin",
+    "app.modules.quotes",
+    "app.modules.catalog",
+    "app.core",
+]
+
+# The facade rule -- another module sees only `application` and `domain`, never `presentation` or
+# `infrastructure`. The test: if this module were pulled out behind an HTTP call tomorrow, would
+# the import still make sense? One contract per importable module, because a forbidden contract
+# cannot name the same package as both source and target, and `quotes` is both. `admin` needs no
+# contract of its own: nothing imports admin, which "Module direction" already enforces.
+[[tool.importlinter.contracts]]
+name = "Facade of catalog"
+type = "forbidden"
+source_modules = ["app.modules.quotes", "app.modules.admin"]
+forbidden_modules = [
+    "app.modules.catalog.presentation",
+    "app.modules.catalog.infrastructure",
+]
+
+[[tool.importlinter.contracts]]
+name = "Facade of quotes"
+type = "forbidden"
+source_modules = ["app.modules.admin"]
+forbidden_modules = [
+    "app.modules.quotes.presentation",
+    "app.modules.quotes.infrastructure",
+]
+ignore_imports = [
+    # Same QuoteDetail as above: admin renders a stored lead through the quotes module's wire
+    # schema. Stage 10 gives it a use case to call instead.
+    "app.modules.admin.presentation.router -> app.modules.quotes.presentation.schemas",
+]
+
+[[tool.importlinter.contracts]]
+name = "Domain isolation"
+# A domain that imports a web framework is a domain that cannot be tested without one.
+type = "forbidden"
+source_modules = [
+    "app.modules.catalog.domain",
+    "app.modules.quotes.domain",
+]
+forbidden_modules = ["fastapi", "starlette", "httpx"]
+
+[[tool.importlinter.contracts]]
+name = "Pricing mirror purity"
+# price_build and validate_selection are duplicated in web/src/lib/. Keeping the Python side free
+# of the ORM is what lets one shared fixture file test both -- see .claude/skills/pricing-mirror.
+# Asserted in a docstring since stage 1; checked from here on.
+type = "forbidden"
+source_modules = [
+    "app.modules.catalog.domain.pricing",
+    "app.modules.catalog.domain.rules",
+]
+forbidden_modules = ["sqlmodel", "sqlalchemy", "fastapi"]

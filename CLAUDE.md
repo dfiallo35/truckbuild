@@ -23,6 +23,7 @@ uv run pytest                  # all tests
 uv run pytest tests/test_health.py::test_healthz_reports_ok   # one test
 uv run ruff check .            # lint
 uv run ruff format .           # format (CI runs `ruff format --check .`)
+uv run lint-imports            # module, layer and facade contracts (pyproject.toml)
 ```
 
 Frontend (`cd web`):
@@ -71,8 +72,9 @@ drives most structural decisions and is documented in `docs/decisions.md`:
 
 ### Boundaries that must hold
 
-- **`app/services/pricing.py` and `app/services/rules.py` are pure** — no `fastapi`, no `sqlmodel` imports.
-  That is what makes them cheap to test and safe to mirror on the client. Write them test-first.
+- **`app/modules/catalog/domain/pricing.py` and `.../domain/rules.py` are pure** — no `fastapi`, no
+  `sqlmodel` imports. That is what makes them cheap to test and safe to mirror on the client. Write them
+  test-first. Enforced by the `Pricing mirror purity` import contract.
 - **The pricing mirror is deliberate duplication.** `price_build` exists in Python (authoritative) and in
   `web/src/lib/pricing.ts` (instant UI feedback). Both sides must be tested against a **single shared JSON
   fixture file** consumed by pytest and Vitest — that is the only thing keeping them from drifting. Same for
@@ -83,9 +85,31 @@ drives most structural decisions and is documented in `docs/decisions.md`:
   `NEXT_PUBLIC_`; the browser reaches FastAPI only through Server Actions and route handlers.
 - **`web/src/lib/api.ts` parses every backend response with Zod** rather than casting, so a backend shape
   change surfaces as a named field error instead of a runtime `undefined` inside a component.
-- **Every env var is declared in `app/config.py`** (pydantic-settings) so a missing value fails at startup.
+- **Every env var is declared in `app/core/config.py`** (pydantic-settings) so a missing value fails at startup.
 - **Slugs are the public identifiers** — they appear in URLs and shared builds. Renaming one is a breaking
   change.
+
+### The API is a modular monolith
+
+`api/app/` is one FastAPI app assembled at one composition root (`main.py`) out of feature modules under
+`app/modules/`, each carrying its own layers over a shared `app/core/`. One process, one database, one
+`SQLModel.metadata` — nothing is deployed independently. Three rules, all checked by
+`uv run lint-imports` (contracts in `api/pyproject.toml`, rationale in
+`docs/stages/08-modules-and-layers.md`):
+
+- **Layers, inside every module:** `presentation : infrastructure → application → domain`. The two
+  adapters are siblings and neither may import the other; `domain` imports nothing.
+- **Module direction:** `admin → quotes → catalog → core`, a DAG, arrows one way only. `core` imports no
+  module, ever, and a thing belongs in `core` only if more than one module uses it *or* it names no
+  module's vocabulary.
+- **Facades:** another module sees only your `application` and `domain` — never your `presentation` or
+  `infrastructure`. The test is *if this module went behind an HTTP call tomorrow, would this import
+  still make sense?*
+
+A module carries only the layers it needs (`admin` owns no tables, so it has no `domain` and no
+`infrastructure`). Cross-module foreign keys are fine — the boundary is in the code, not the schema.
+Three imports are pinned as named `ignore_imports` exceptions with the stage that removes each;
+that list should only ever shrink.
 
 ### Build state
 
@@ -126,9 +150,9 @@ of opening a second one that will conflict.
 The build is split into staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-Stages 0–7 (the build) are complete; stages 8–11 restructure `api/` into a modular monolith —
-feature modules under `app/modules/`, each with its own four clean-architecture layers over a
-shared `app/core/`, all mounted on one FastAPI app. Not started. The site is deployed at <https://truckbuild.vercel.app>
+Stages 0–8 are complete. Stage 8 moved `api/` into the modular-monolith layout described above;
+stages 9–11 do the untangling it was shaped to receive — repositories (9), one use case per
+endpoint (10), then seeding, web and docs (11). The site is deployed at <https://truckbuild.vercel.app>
 with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
 and also records why the API runs as a Vercel Python function rather than the container
 `api/render.yaml` still describes.
@@ -154,7 +178,7 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
 | `pricing-mirror` | Touching pricing arithmetic or compatibility rules on either side of the Python/TypeScript mirror |
 | `catalog-change` | Adding or editing a platform, option, price, or rule — the chain from `catalog.yaml` to a rendered page |
 | `cache-and-revalidation` | Adding a catalog read, changing cache tags, or a catalog edit not reaching the site |
-| `alembic-migration` | Any change under `api/app/models/` |
+| `alembic-migration` | Any change under a module's `domain/entities/` |
 | `stage-checkpoint` | Verifying or closing out a stage, or running the CI-equivalent sweep |
 | `open-pr` | Opening or inspecting a PR — the last step of any task that produces committed work |
 

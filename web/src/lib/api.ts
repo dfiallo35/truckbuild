@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 /**
- * Zod schemas mirroring api/app/schemas/catalog.py field-for-field. Field names stay snake_case
+ * Zod schemas mirroring api/app/modules/catalog/presentation/schemas.py field-for-field. Field names stay snake_case
  * to match the wire format exactly -- a renamed or retyped backend field should surface here as
  * a Zod error naming that field, not as a silent mismatch introduced by a translation layer.
  */
@@ -190,7 +190,7 @@ async function postLead(path: string, payload: unknown, forwardedFor: string | n
     headers: {
       "content-type": "application/json",
       // The visitor's address, not this server's. Without it every submission in the world
-      // would share one rate-limit bucket -- see api/app/routers/quotes.py.
+      // would share one rate-limit bucket -- see api/app/modules/quotes/presentation/router.py.
       ...(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
     },
     body: JSON.stringify(payload),

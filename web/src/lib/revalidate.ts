@@ -7,7 +7,7 @@ import { z } from "zod";
  * who it says it is, and are these tags this site actually has.
  *
  * Kept out of the route handler so it can be tested without a running server -- the handler is
- * then only the two lines that call `revalidateTag`. See `api/app/services/revalidate.py` for
+ * then only the two lines that call `revalidateTag`. See `api/app/core/revalidate.py` for
  * the caller and .claude/skills/cache-and-revalidation for the contract.
  */
 
