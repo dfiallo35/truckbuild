@@ -68,7 +68,7 @@ configuration.
 ## Environment variables
 
 Every one is documented in [`.env.example`](../.env.example), and every one the API reads is declared
-in `api/app/config.py` — a missing or malformed value fails at startup rather than surfacing as a
+in `api/app/core/config.py` — a missing or malformed value fails at startup rather than surfacing as a
 confusing `None` inside a request.
 
 Four are worth calling out:
