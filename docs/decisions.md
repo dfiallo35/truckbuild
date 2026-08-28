@@ -11,6 +11,30 @@
 | Hosting | Both services on Vercel, Postgres on Neon — all on free tiers, see below |
 | Catalog content | Placeholder verticals — invented demo platforms to be replaced with real data |
 | Aesthetic | Dark, cinematic, photo-led |
+| API structure | Modular monolith — feature modules, four layers each, over a shared `core` |
+
+### API structure, decided while planning stages 9–13
+
+The layout is adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/property-management),
+which runs the same vertical-slice-over-a-shared-`core` shape across fourteen features. Two choices
+inside it are worth stating before the code exists, because both are reversals of what is on disk
+today:
+
+- **Entities are separate from tables.** Pure pydantic in `domain/models.py`, SQLModel in
+  `infrastructure/postgres/tables.py`, a mapper in each direction. It costs roughly 150 lines of
+  mapper code and one more place to add a field. It buys a `domain/` that imports no ORM — checked
+  by an import-linter contract, not by review — and lets `price_build` and `validate_selection` take
+  real entities instead of the shim types they take today.
+- **The kernel carries the whole CRUD set.** `BaseUseCase` plus `Create`/`Update`/`Delete`/`List`/
+  `Paginate`/`GetById`/`BatchUpdate`, even though this service will leave three of them unused —
+  the catalog is seeded rather than edited over HTTP, and a lead is never mutated. Carried whole
+  because the set is easier to reason about than an à la carte subset, and marked
+  `# pragma: no cover` where unreached rather than quietly dragging the coverage number down.
+
+Deviations from the reference — FastAPI `Depends` rather than `dependency_injector`, sync rather
+than async, `limit`/`offset` rather than `page`/`size`, SQLModel tables rather than plain
+SQLAlchemy, no i18n — are each named and justified in
+[stages/09-core-kernel.md](stages/09-core-kernel.md#deviations-from-the-reference-and-why).
 
 ## The one architectural tension, and how it is resolved
 

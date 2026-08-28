@@ -22,7 +22,7 @@ rule *inside* each module rather than a directory you can wander out of.
 
 This stage does none of the untangling. It **only moves files**, because a refactor that moves code
 and changes it in the same commit cannot be reviewed: nobody can tell which hunk was mechanical and
-which one changed a price. Stages 9 and 10 do the untangling, against a tree already shaped to
+which one changed a price. Stages 9–12 do the untangling, against a tree already shaped to
 receive it.
 
 **Prerequisite:** Stage 7 checkpoint passes.
@@ -48,8 +48,8 @@ api/app/
     │   │   ├── enums.py                 # SelectionMode · DisplayStyle · RuleRelation · AssetKind
     │   │   ├── pricing.py               # ← services/pricing.py   still forbids sqlmodel
     │   │   └── rules.py                 # ← services/rules.py     still forbids sqlmodel
-    │   ├── application/                 # Stage 9 puts ports here, Stage 10 use cases
-    │   ├── infrastructure/              # Stage 9 puts the repository here
+    │   ├── application/                 # Stage 10 puts use cases and DTOs here
+    │   ├── infrastructure/              # Stage 10 puts the tables and the repository here
     │   └── presentation/                # ← routers/catalog.py · schemas/catalog.py
     ├── quotes/
     │   ├── domain/
@@ -216,15 +216,15 @@ restructure needs no packaging change at all.
 
    **Three imports do not survive the move, and are pinned rather than papered over.** This stage
    plan claimed the moved tree would satisfy every contract; it does not, because two of the
-   entanglements stages 9 and 10 exist to remove are visible the moment the layout makes them
+   entanglements stages 9–12 exist to remove are visible the moment the layout makes them
    visible. Both come down to one fact: `QuoteDetail` is a *wire* schema being used as the quotes
    module's internal currency, and the router calls the mail adapter directly.
 
    | Import | Rule | Removed by |
    |---|---|---|
-   | `quotes.presentation.router → quotes.infrastructure.mail` | layers | Stage 10 — the router calls a use case that owns the mail port |
-   | `quotes.infrastructure.mail → quotes.presentation.schemas` | layers | Stage 10 — mail renders a use-case result, not a response schema |
-   | `admin.presentation.router → quotes.presentation.schemas` | facade | Stage 10 — admin calls a quotes use case |
+   | `quotes.presentation.router → quotes.infrastructure.mail` | layers | Stage 11 — the router calls a use case that owns the mail port |
+   | `quotes.infrastructure.mail → quotes.presentation.schemas` | layers | Stage 11 — mail renders a use-case result, not a response schema |
+   | `admin.presentation.router → quotes.presentation.schemas` | facade | Stage 12 — admin renders leads through its own DTOs |
 
    They are listed as named `ignore_imports` entries against the contract each one breaks, with a
    comment naming the stage that deletes it. Fixing them here would mean moving `QuoteDetail` and

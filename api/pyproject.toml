@@ -74,9 +74,9 @@ layers = ["presentation | (infrastructure)", "application", "(domain)"]
 containers = ["app.modules.catalog", "app.modules.quotes", "app.modules.admin"]
 exhaustive = false
 ignore_imports = [
-    # Stage 10 replaces this with the router calling a use case that owns the mail port.
+    # Stage 11 replaces this with the router calling a use case that owns the mail port.
     "app.modules.quotes.presentation.router -> app.modules.quotes.infrastructure.mail",
-    # Stage 10 moves QuoteDetail off the wire layer, so the mail adapter renders a use-case
+    # Stage 11 moves QuoteDetail off the wire layer, so the mail adapter renders a use-case
     # result rather than a response schema.
     "app.modules.quotes.infrastructure.mail -> app.modules.quotes.presentation.schemas",
 ]
@@ -117,7 +117,7 @@ forbidden_modules = [
 ]
 ignore_imports = [
     # Same QuoteDetail as above: admin renders a stored lead through the quotes module's wire
-    # schema. Stage 10 gives it a use case to call instead.
+    # schema. Stage 12 gives admin its own output DTOs instead.
     "app.modules.admin.presentation.router -> app.modules.quotes.presentation.schemas",
 ]
 
