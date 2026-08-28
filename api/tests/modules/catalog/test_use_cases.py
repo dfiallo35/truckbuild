@@ -17,6 +17,7 @@ from app.modules.catalog.application.services import CatalogService
 from app.modules.catalog.application.use_cases import (
     GetPlatformUseCase,
     RevalidateCatalogUseCase,
+    SeedCatalogUseCase,
 )
 from app.modules.catalog.domain.exceptions import PlatformNotFoundError
 from app.modules.catalog.domain.filters import PlatformFilter
@@ -51,6 +52,11 @@ def _platform(slug: str) -> Platform:
 class FakePlatforms(IPlatformRepository):
     def __init__(self, platforms: list[Platform]) -> None:
         self.platforms = platforms
+        self.upsert_calls: list[dict] = []
+
+    def upsert_from_catalog(self, catalog: dict) -> list[str]:
+        self.upsert_calls.append(catalog)
+        return [p["slug"] for p in catalog["platforms"]]
 
     def list(self, filters: PlatformFilter) -> list[Platform]:
         if filters.slug_eq is not None:
@@ -152,3 +158,39 @@ def test_the_use_cases_can_be_built_without_a_service() -> None:
     invalidator = FakeInvalidator()
     revalidate = RevalidateCatalogUseCase(invalidator=invalidator, repository=platforms)
     assert revalidate.exec().tags == ("catalog", "platform-bristlecone")
+
+
+def _catalog_dict(*slugs: str) -> dict:
+    return {"platforms": [{"slug": slug} for slug in slugs], "rules": []}
+
+
+def test_seeding_upserts_through_the_repository_and_returns_its_slugs() -> None:
+    platforms = FakePlatforms([])
+    invalidator = FakeInvalidator()
+    seed = SeedCatalogUseCase(repository=platforms, invalidator=invalidator)
+
+    catalog = _catalog_dict("bristlecone", "ironwood")
+    slugs = seed.exec(catalog)
+
+    assert slugs == ["bristlecone", "ironwood"]
+    assert platforms.upsert_calls == [catalog]
+
+
+def test_seeding_revalidates_the_slugs_it_just_wrote() -> None:
+    platforms = FakePlatforms([])
+    invalidator = FakeInvalidator()
+    seed = SeedCatalogUseCase(repository=platforms, invalidator=invalidator)
+
+    seed.exec(_catalog_dict("bristlecone"))
+
+    assert invalidator.calls == [["catalog", "platform-bristlecone"]]
+
+
+def test_no_revalidate_skips_the_invalidator_entirely() -> None:
+    platforms = FakePlatforms([])
+    invalidator = FakeInvalidator()
+    seed = SeedCatalogUseCase(repository=platforms, invalidator=invalidator)
+
+    seed.exec(_catalog_dict("bristlecone"), revalidate=False)
+
+    assert invalidator.calls == []
