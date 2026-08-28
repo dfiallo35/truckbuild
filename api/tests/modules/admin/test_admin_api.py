@@ -12,8 +12,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
+from app.core.infrastructure.ratelimit import RateLimiter
 from app.main import app
-from app.modules.quotes.presentation.router import limiter
+from app.modules.quotes.dependencies import get_rate_limiter
 
 client = TestClient(app)
 settings = get_settings()
@@ -32,8 +33,15 @@ _ips = itertools.count(1)
 
 
 @pytest.fixture(autouse=True)
-def _fresh_limiter() -> None:
-    limiter.reset()
+def _fresh_limiter():
+    """A limiter of this test's own -- this suite submits real leads to build its fixtures, and
+    the real limiter is process-global. See tests/modules/quotes/test_quotes_api.py."""
+    app.dependency_overrides[get_rate_limiter] = lambda: RateLimiter(
+        limit=settings.quote_rate_limit,
+        window_seconds=settings.quote_rate_limit_window_seconds,
+    )
+    yield
+    app.dependency_overrides.pop(get_rate_limiter, None)
 
 
 def submit(**overrides) -> dict:

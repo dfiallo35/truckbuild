@@ -77,7 +77,9 @@ Three liabilities come with the current arrangement, all dated rather than perma
 - **The rate limiter is per-instance.** `app/core/infrastructure/ratelimit.py` keeps counters in
   process memory, and serverless instances do not share state. It still blunts a naive flood, but it is no longer the
   global control it was designed as. The fix is a shared store — Postgres or KV — and it is deferred
-  rather than overlooked.
+  rather than overlooked. Stage 11 did not fix it, but it made the fix a one-file change: the
+  limiter is now injected through `quotes/dependencies.py` behind `IRateLimiter`, so a shared
+  implementation swaps in without anything above it changing.
 
 One thing the caching decision above quietly bought: because marketing pages never read the API at
 request time, API cold starts are invisible to a browsing visitor. They surface only on a lead

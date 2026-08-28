@@ -44,9 +44,14 @@ def test_the_ports_are_where_this_test_thinks_they_are() -> None:
         "app.modules.admin.presentation.router": [
             "get_platform_repository",
             "get_cache_invalidator",
+            "get_quote_repository",
         ],
         "app.modules.catalog.presentation.catalog_api": ["get_catalog_service"],
-        "app.modules.quotes.presentation.router": ["get_platform_repository"],
+        "app.modules.quotes.presentation.quotes_api": [
+            "get_quote_service",
+            "get_mailer",
+            "get_platform_repository",
+        ],
     }
 
 
@@ -67,7 +72,7 @@ def test_an_unbound_port_fails_loudly() -> None:
     would surface as an empty catalog, which reads like missing data rather than missing wiring."""
     import pytest
 
-    from app.modules.quotes.presentation.router import get_platform_repository
+    from app.modules.quotes.presentation.quotes_api import get_platform_repository
 
     with pytest.raises(NotImplementedError):
         get_platform_repository()

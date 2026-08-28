@@ -9,6 +9,12 @@ from the revalidation trigger, which busts a cache and nothing more.
 
 The endpoints are unlisted rather than secret: the guard is on the router, so a route added here
 is guarded by construction rather than by the author remembering to add a dependency.
+
+``admin`` owns no tables. It reads leads through ``quotes``' repository port and the catalog
+through ``catalog``'s, both bound at the composition root -- it may name another module's
+``domain`` and ``application`` and never its adapters (the facade rule, CLAUDE.md). Stage 12
+gives it use cases and output DTOs of its own; what it has today is a router that composes no
+query.
 """
 
 import logging
@@ -17,11 +23,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import func, or_
-from sqlmodel import Session, col, select
 
 from app.core.config import Settings, get_settings
-from app.core.infrastructure.postgres.database import get_session
 from app.modules.admin.presentation.schemas import (
     QuotePage,
     QuoteSummary,
@@ -30,9 +33,12 @@ from app.modules.admin.presentation.schemas import (
 )
 from app.modules.catalog.application.services import CatalogService
 from app.modules.catalog.domain.interfaces import ICacheInvalidator, IPlatformRepository
-from app.modules.quotes.domain.entities import Quote, QuoteLine
+from app.modules.quotes.application.dtos import QuoteDetailOutput
+from app.modules.quotes.application.mappers import QuoteMapper
 from app.modules.quotes.domain.enums import QuoteKind
-from app.modules.quotes.presentation.schemas import QuoteDetail
+from app.modules.quotes.domain.exceptions import QuoteNotFoundError
+from app.modules.quotes.domain.filters import QuoteFilter
+from app.modules.quotes.domain.interfaces import IQuoteRepository
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +46,18 @@ logger = logging.getLogger(__name__)
 # error shape, rather than in FastAPI's own.
 _bearer = HTTPBearer(auto_error=False, description="ADMIN_TOKEN")
 
-SessionDep = Annotated[Session, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
+# How a stored lead is read back out. ``quotes``' own mapper, until Stage 12 gives ``admin`` the
+# shapes it actually wants: a staff-facing lead view and a customer-facing submission response
+# are two audiences whose fields will diverge the first time either changes.
+_quotes = QuoteMapper()
 
-# The two catalog ports this module reads and writes cache tags through, bound to catalog's own
-# adapters at the composition root in ``app/main.py``. ``admin`` may name another module's
-# ``domain`` and ``application`` and never its adapters (the facade rule, CLAUDE.md), so it
-# declares what it needs and lets the place that assembles the application supply it.
+
+# The three ports this module consumes, bound to their owning modules' adapters at the composition
+# root in ``app/main.py``. ``admin`` may name another module's ``domain`` and ``application`` and
+# never its adapters, so it declares what it needs and lets the place that assembles the
+# application supply it.
 def get_platform_repository() -> IPlatformRepository:  # pragma: no cover - bound in app/main.py
     raise NotImplementedError(
         "get_platform_repository is bound at the composition root in app/main.py"
@@ -60,6 +70,12 @@ def get_cache_invalidator() -> ICacheInvalidator:  # pragma: no cover - bound in
     )
 
 
+def get_quote_repository() -> IQuoteRepository:  # pragma: no cover - bound in app/main.py
+    raise NotImplementedError(
+        "get_quote_repository is bound at the composition root in app/main.py"
+    )
+
+
 def get_catalog_service(
     repository: Annotated[IPlatformRepository, Depends(get_platform_repository)],
     invalidator: Annotated[ICacheInvalidator, Depends(get_cache_invalidator)],
@@ -68,6 +84,7 @@ def get_catalog_service(
 
 
 CatalogDep = Annotated[CatalogService, Depends(get_catalog_service)]
+QuotesDep = Annotated[IQuoteRepository, Depends(get_quote_repository)]
 
 
 def require_admin(
@@ -91,83 +108,48 @@ def require_admin(
 
 router = APIRouter(prefix="/v1/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
+# A bound on a query parameter is an HTTP concern and belongs where FastAPI can reject it with a
+# 422 before anything else runs.
 MAX_PAGE_SIZE = 100
-
-
-def _escape_like(term: str) -> str:
-    """``%`` and ``_`` are wildcards to ``ILIKE``; a search for ``100%`` should look for that."""
-    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 @router.get("/quotes", response_model=QuotePage)
 def list_quotes(
-    session: SessionDep,
+    quotes: QuotesDep,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = 25,
     offset: Annotated[int, Query(ge=0)] = 0,
     kind: QuoteKind | None = None,
     platform_slug: str | None = None,
     q: Annotated[str | None, Query(max_length=200, description="ref, name, or email")] = None,
 ) -> QuotePage:
-    """Newest first, which is the only order a lead list is ever read in."""
-    conditions = []
-    if kind is not None:
-        conditions.append(col(Quote.kind) == kind)
-    if platform_slug:
-        conditions.append(col(Quote.platform_slug) == platform_slug)
-    if q:
-        term = f"%{_escape_like(q.strip())}%"
-        conditions.append(
-            or_(
-                col(Quote.ref).ilike(term, escape="\\"),
-                col(Quote.contact_name).ilike(term, escape="\\"),
-                col(Quote.contact_email).ilike(term, escape="\\"),
-            )
-        )
+    """Newest first, which is the only order a lead list is ever read in.
 
-    total = session.exec(select(func.count()).select_from(Quote).where(*conditions)).one()
-
-    # One count per page rather than per row: a lead list is read constantly and the line count
-    # is the only thing on a summary that is not already on the quote row.
-    line_counts = dict(
-        session.exec(
-            select(col(QuoteLine.quote_id), func.count())
-            .group_by(col(QuoteLine.quote_id))
-            .where(
-                col(QuoteLine.quote_id).in_(
-                    select(col(Quote.id))
-                    .where(*conditions)
-                    .order_by(col(Quote.created_at).desc(), col(Quote.id).desc())
-                    .limit(limit)
-                    .offset(offset)
-                )
-            )
-        ).all()
+    ``total`` counts the whole filtered set rather than this page: it is what tells the caller
+    whether there is more to fetch, so the window is deliberately dropped from the count.
+    """
+    filters = QuoteFilter(
+        limit=limit,
+        offset=offset,
+        kind_eq=kind,
+        platform_slug_eq=platform_slug,
+        search=q,
     )
-
-    rows = session.exec(
-        select(Quote)
-        .where(*conditions)
-        # ``id`` breaks the tie: two leads can share a created_at to the microsecond under a
-        # test's clock, and a page boundary that wobbles drops or repeats a lead.
-        .order_by(col(Quote.created_at).desc(), col(Quote.id).desc())
-        .limit(limit)
-        .offset(offset)
-    ).all()
+    total = quotes.count(filters)
 
     return QuotePage(
         items=[
             QuoteSummary(
-                ref=row.ref,
-                kind=row.kind,
-                created_at=row.created_at,
-                contact_name=row.contact_name,
-                contact_email=row.contact_email,
-                platform_slug=row.platform_slug,
-                platform_name=row.platform_name,
-                total_cents=row.total_cents,
-                line_count=line_counts.get(row.id, 0),
+                ref=quote.ref,
+                kind=quote.kind,
+                created_at=quote.created_at,
+                contact_name=quote.contact_name,
+                contact_email=quote.contact_email,
+                platform_slug=quote.platform_slug,
+                platform_name=quote.platform_name,
+                total_cents=quote.total_cents,
+                line_count=len(quote.lines),
             )
-            for row in rows
+            for quote in quotes.list(filters)
         ],
         total=total,
         limit=limit,
@@ -175,13 +157,18 @@ def list_quotes(
     )
 
 
-@router.get("/quotes/{ref}", response_model=QuoteDetail)
-def get_quote(ref: str, session: SessionDep) -> QuoteDetail:
-    """The whole lead by its public reference -- the number the customer quotes on the phone."""
-    quote = session.exec(select(Quote).where(col(Quote.ref) == ref)).first()
+@router.get("/quotes/{ref}", response_model=QuoteDetailOutput)
+def get_quote(ref: str, quotes: QuotesDep) -> QuoteDetailOutput:
+    """The whole lead by its public reference -- the number the customer quotes on the phone.
+
+    A missing one raises ``QuoteNotFoundError``, which ``core/presentation/errors.py`` renders as
+    a 404 in this API's one error body. No ``HTTPException``: the status and the code ride on the
+    domain error.
+    """
+    quote = quotes.by_ref(ref)
     if quote is None:
-        raise HTTPException(status_code=404, detail=f"no quote with reference {ref!r}")
-    return QuoteDetail.from_row(quote)
+        raise QuoteNotFoundError(ref)
+    return _quotes.to_api(quote)
 
 
 @router.post("/revalidate", response_model=RevalidateOut)

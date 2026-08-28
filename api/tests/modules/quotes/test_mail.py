@@ -6,14 +6,18 @@ from datetime import UTC, datetime
 import pytest
 
 from app.core.config import Settings
+from app.modules.quotes.application.dtos import (
+    ContactInput,
+    QuoteDetailOutput,
+    QuoteLineOutput,
+)
 from app.modules.quotes.domain.enums import QuoteKind
 from app.modules.quotes.infrastructure import mail
-from app.modules.quotes.presentation.schemas import ContactIn, QuoteDetail, QuoteLineOut
 
 
 @pytest.fixture
-def detail() -> QuoteDetail:
-    return QuoteDetail(
+def detail() -> QuoteDetailOutput:
+    return QuoteDetailOutput(
         ref="TB-K7MQ4C",
         kind=QuoteKind.build,
         platform_slug="bristlecone",
@@ -21,13 +25,13 @@ def detail() -> QuoteDetail:
         base_price_cents=21_450_000,
         total_cents=22_010_000,
         lines=[
-            QuoteLineOut(
+            QuoteLineOutput(
                 group_name="Recovery & Protection",
                 option_slug="bumper-heavy",
                 option_name="Heavy front bumper",
                 price_delta_cents=220_000,
             ),
-            QuoteLineOut(
+            QuoteLineOutput(
                 group_name="Recovery & Protection",
                 option_slug="winch-12000",
                 option_name="12,000 lb winch",
@@ -35,7 +39,7 @@ def detail() -> QuoteDetail:
             ),
         ],
         created_at=datetime(2026, 8, 27, 9, 30, tzinfo=UTC),
-        contact=ContactIn(name="Dana Reyes", email="dana@example.com", phone="+1 555 0100"),
+        contact=ContactInput(name="Dana Reyes", email="dana@example.com", phone="+1 555 0100"),
         intended_use="Two-up desert travel.",
         timeline="3–6 months",
         notes="",
@@ -47,7 +51,9 @@ def settings() -> Settings:
     return Settings(sales_inbox="sales@truckbuild.example", resend_api_key=None)
 
 
-def test_the_sales_email_carries_the_whole_lead(detail: QuoteDetail, settings: Settings) -> None:
+def test_the_sales_email_carries_the_whole_lead(
+    detail: QuoteDetailOutput, settings: Settings
+) -> None:
     email = mail.render_sales_email(detail, settings.sales_inbox)
 
     assert email.to == "sales@truckbuild.example"
@@ -61,11 +67,11 @@ def test_the_sales_email_carries_the_whole_lead(detail: QuoteDetail, settings: S
     assert "$220,100" in email.text
 
 
-def test_replying_to_the_sales_email_reaches_the_customer(detail: QuoteDetail) -> None:
+def test_replying_to_the_sales_email_reaches_the_customer(detail: QuoteDetailOutput) -> None:
     assert mail.render_sales_email(detail, "sales@x.example").reply_to == "dana@example.com"
 
 
-def test_the_customer_email_leads_with_the_reference(detail: QuoteDetail) -> None:
+def test_the_customer_email_leads_with_the_reference(detail: QuoteDetailOutput) -> None:
     email = mail.render_customer_email(detail)
     assert email.to == "dana@example.com"
     assert "TB-K7MQ4C" in email.subject
@@ -75,7 +81,7 @@ def test_the_customer_email_leads_with_the_reference(detail: QuoteDetail) -> Non
     assert "confirmed by us" in email.text
 
 
-def test_an_enquiry_email_does_not_invent_a_build(detail: QuoteDetail) -> None:
+def test_an_enquiry_email_does_not_invent_a_build(detail: QuoteDetailOutput) -> None:
     enquiry = detail.model_copy(
         update={
             "kind": QuoteKind.enquiry,
@@ -90,16 +96,16 @@ def test_an_enquiry_email_does_not_invent_a_build(detail: QuoteDetail) -> None:
 
 
 async def test_a_missing_api_key_logs_instead_of_sending(
-    detail: QuoteDetail, settings: Settings, caplog
+    detail: QuoteDetailOutput, settings: Settings, caplog
 ) -> None:
     with caplog.at_level("INFO"):
-        await mail.send_lead_emails(detail, settings)
+        await mail.ResendMailer(settings).send_lead_emails(detail)
     assert "mail not sent" in caplog.text
     assert "TB-K7MQ4C" in caplog.text
 
 
 async def test_a_failing_provider_is_logged_and_swallowed(
-    detail: QuoteDetail, monkeypatch, caplog
+    detail: QuoteDetailOutput, monkeypatch, caplog
 ) -> None:
     """By the time this runs the lead is already committed. Raising here would turn a mail
     outage into a lost lead."""
@@ -120,7 +126,7 @@ async def test_a_failing_provider_is_logged_and_swallowed(
     monkeypatch.setattr(mail.httpx, "AsyncClient", BrokenClient)
 
     with caplog.at_level("ERROR"):
-        await mail.send_lead_emails(detail, Settings(resend_api_key="re_broken_key"))
+        await mail.ResendMailer(Settings(resend_api_key="re_broken_key")).send_lead_emails(detail)
 
     assert "failed to send" in caplog.text
     assert "dana@example.com" in caplog.text

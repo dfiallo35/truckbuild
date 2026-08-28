@@ -7,10 +7,10 @@ from sqlmodel import SQLModel
 # imported, and a module left off this list is a module whose tables a migration drops.
 # tests/test_entity_registry.py is the guard that catches the omission.
 #
-# The two paths differ because the migration is mid-flight: `catalog` split its entities from its
-# tables in Stage 10, `quotes` still has them as one thing until Stage 11.
+# Since Stage 11 every module keeps its tables in the same place: `infrastructure/postgres/`,
+# with the entities they store in `domain/models.py`.
 import app.modules.catalog.infrastructure.postgres.tables  # noqa: F401
-import app.modules.quotes.domain.entities  # noqa: F401
+import app.modules.quotes.infrastructure.postgres.tables  # noqa: F401
 from alembic import context
 from app.core.config import get_settings
 

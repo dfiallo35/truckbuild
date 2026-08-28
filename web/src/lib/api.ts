@@ -190,7 +190,7 @@ async function postLead(path: string, payload: unknown, forwardedFor: string | n
     headers: {
       "content-type": "application/json",
       // The visitor's address, not this server's. Without it every submission in the world
-      // would share one rate-limit bucket -- see api/app/modules/quotes/presentation/router.py.
+      // would share one rate-limit bucket -- see api/app/modules/quotes/presentation/quotes_api.py.
       ...(forwardedFor ? { "x-forwarded-for": forwardedFor } : {}),
     },
     body: JSON.stringify(payload),

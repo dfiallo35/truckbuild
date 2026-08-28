@@ -28,6 +28,9 @@ from app.modules.admin.presentation.router import (
 from app.modules.admin.presentation.router import (
     get_platform_repository as admin_platform_repository_port,
 )
+from app.modules.admin.presentation.router import (
+    get_quote_repository as admin_quote_repository_port,
+)
 from app.modules.catalog import router as catalog_router
 from app.modules.catalog.dependencies import (
     get_cache_invalidator,
@@ -38,8 +41,13 @@ from app.modules.catalog.presentation.catalog_api import (
     get_catalog_service as catalog_service_port,
 )
 from app.modules.quotes import router as quotes_router
-from app.modules.quotes.presentation.router import (
+from app.modules.quotes.dependencies import get_mailer, get_quote_repository, get_quote_service
+from app.modules.quotes.presentation.quotes_api import get_mailer as quotes_mailer_port
+from app.modules.quotes.presentation.quotes_api import (
     get_platform_repository as quotes_platform_repository_port,
+)
+from app.modules.quotes.presentation.quotes_api import (
+    get_quote_service as quotes_service_port,
 )
 
 settings = get_settings()
@@ -70,14 +78,19 @@ app = create_app(
     settings=settings,
 )
 
-# The cross-module bindings. Left of the arrow is a port a consuming module declared and cannot
-# fill; right of it is the catalog adapter that fills it. `tests/test_composition_root.py` fails
-# if a declared port is left unbound, because the symptom otherwise is a 500 on one endpoint.
+# Every binding in the application, in one screen. Left of the arrow is a port a module's
+# `presentation` declared and cannot fill -- because a router may not name an adapter, within a
+# module or across one; right of it is the provider that fills it, out of the owning module's
+# `dependencies.py`. `tests/test_composition_root.py` fails if a declared port is left unbound,
+# because the symptom otherwise is a 500 on exactly one endpoint.
 PORT_BINDINGS = {
     catalog_service_port: get_catalog_service,
+    quotes_service_port: get_quote_service,
+    quotes_mailer_port: get_mailer,
     quotes_platform_repository_port: get_platform_repository,
     admin_platform_repository_port: get_platform_repository,
     admin_cache_invalidator_port: get_cache_invalidator,
+    admin_quote_repository_port: get_quote_repository,
 }
 
 app.dependency_overrides.update(PORT_BINDINGS)

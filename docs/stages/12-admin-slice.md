@@ -13,6 +13,17 @@ removes.
 
 **Prerequisite:** Stage 11 checkpoint passes.
 
+> **Stage 11 landed part of this stage early, because it had to.** Moving `quotes`' tables out of
+> `domain/` made `admin`'s `select(Quote)` a facade violation with no exception left to pin it
+> under, so `admin` came off direct table access there: its router declares an `IQuoteRepository`
+> port, builds a `QuoteFilter`, and composes no query. `QuoteFilter` (`ref_eq`, `kind_eq`,
+> `platform_slug_eq`, `search`), `QuoteRepositoryPostgres.filter` with `_escape_like` and the
+> `created_at DESC, id DESC` policy, and the last `ignore_imports` are therefore already done —
+> step 1 below is history apart from `MAX_PAGE_SIZE` moving into `presentation/filters.py`, and
+> step 3's facade violation is closed. What remains is the shape: `admin` still has no use cases
+> and no DTOs of its own, and renders leads through `quotes`' `QuoteMapper` and
+> `QuoteDetailOutput`.
+
 ## The target slice
 
 ```
@@ -56,11 +67,11 @@ app/modules/admin/
    consumes `quotes.domain.interfaces.IQuoteRepository` and `catalog`'s application facade — it
    defines neither, which is what `admin → quotes → catalog` means in practice.
 
-3. **`admin` gets its own output DTOs.** The router imports `QuoteDetail` from
-   `quotes/presentation/schemas.py` today — the last facade violation in `pyproject.toml`, and a
-   real one: a staff-facing lead view and a customer-facing submission response are two audiences
-   whose fields will diverge the first time either changes. `admin/application/mappers.py` maps
-   `quotes.domain.Quote` to admin's own shapes.
+3. **`admin` gets its own output DTOs.** Since Stage 11 the router renders leads through
+   `quotes`' own `QuoteMapper` and `QuoteDetailOutput` — legal, since both are `application`, but
+   still borrowed: a staff-facing lead view and a customer-facing submission response are two
+   audiences whose fields will diverge the first time either changes.
+   `admin/application/mappers.py` maps `quotes.domain.Quote` to admin's own shapes.
 
    The **wire bodies must not change** in this stage. `QuoteSummary`, `QuotePage` and the detail
    body keep their field names, types, and ordering; `web/src/app/(site)/admin/` is not touched.
@@ -90,8 +101,8 @@ app/modules/admin/
    composition root and are declared as such — the only places allowed to see across a layer
    boundary, because something has to know how the pieces are assembled.
 
-   **`ignore_imports` must be empty.** Every exception the migration inherited has a stage that
-   removed it; if one is still there, that stage is not finished.
+   **`ignore_imports` must stay empty.** Stage 11 emptied it; if one has reappeared, whatever
+   added it is not finished.
 
 ## Checkpoint
 
