@@ -3,7 +3,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 
 import { PlatformCard } from "@/components/PlatformCard";
-import type { Platform } from "@/lib/api";
+import type { Platform } from "@/lib/contract";
 
 type FilterOption = {
   slug: string;

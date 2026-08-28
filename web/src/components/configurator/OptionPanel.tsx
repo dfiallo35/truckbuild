@@ -3,9 +3,9 @@
 import Image from "next/image";
 import { useMemo, type Ref } from "react";
 
-import type { Option, OptionGroup, Platform } from "@/lib/api";
+import type { Option, OptionGroup, Platform } from "@/lib/contract";
 import { toRuleable } from "@/lib/build";
-import { formatDelta } from "@/lib/pricing";
+import { formatDelta } from "@/lib/format";
 import { violationsIfSelected, type RuleViolation } from "@/lib/rules";
 
 /**

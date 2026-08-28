@@ -1,4 +1,4 @@
-import type { Option, OptionGroup, Platform } from "@/lib/api";
+import type { Option, OptionGroup, Platform } from "@/lib/contract";
 import type { PriceablePlatform } from "@/lib/pricing";
 import type { RuleablePlatform } from "@/lib/rules";
 

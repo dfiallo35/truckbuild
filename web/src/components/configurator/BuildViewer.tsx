@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMemo } from "react";
 
-import type { Platform } from "@/lib/api";
+import type { Platform } from "@/lib/contract";
 import { allOptions } from "@/lib/build";
 
 /**

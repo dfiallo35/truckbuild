@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { Platform } from "@/lib/api";
+import type { Platform } from "@/lib/contract";
 import { SITE_NAME } from "@/lib/site";
 
 /**

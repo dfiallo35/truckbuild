@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import type { OptionGroup } from "@/lib/api";
+import type { OptionGroup } from "@/lib/contract";
 
 /**
  * The steps of the build, and what each one currently answers. Numbering earns its place here:

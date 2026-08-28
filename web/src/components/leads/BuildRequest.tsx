@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useActionState, useMemo } from "react";
+import { useActionState } from "react";
 
 import {
   Field,
@@ -13,17 +13,11 @@ import {
   TimelineField,
 } from "@/components/leads/LeadFields";
 import { requestBuild } from "@/lib/actions";
-import type { Platform } from "@/lib/api";
-import {
-  BUILD_PARAM,
-  decodeSelection,
-  encodeSelection,
-  toPriceable,
-  toRuleable,
-} from "@/lib/build";
+import { BUILD_PARAM, encodeSelection } from "@/lib/build";
+import { useBuildView } from "@/lib/buildView";
+import type { Platform } from "@/lib/contract";
+import { formatCents, formatDelta } from "@/lib/format";
 import { IDLE_LEAD_STATE } from "@/lib/leads";
-import { formatCents, formatDelta, priceBuild } from "@/lib/pricing";
-import { validateSelection } from "@/lib/rules";
 
 /**
  * Handing the work order across the counter: the build on the left, priced and locked, the
@@ -37,18 +31,7 @@ export function BuildRequest({ platform }: { platform: Platform }) {
   const searchParams = useSearchParams();
   const [state, action] = useActionState(requestBuild, IDLE_LEAD_STATE);
 
-  const selected = useMemo(
-    () => decodeSelection(platform, searchParams.get(BUILD_PARAM)),
-    [platform, searchParams],
-  );
-  const breakdown = useMemo(
-    () => priceBuild(toPriceable(platform), selected),
-    [platform, selected],
-  );
-  const violations = useMemo(
-    () => validateSelection(toRuleable(platform), selected),
-    [platform, selected],
-  );
+  const { selected, breakdown, violations } = useBuildView(platform, searchParams);
 
   const encoded = encodeSelection(platform, selected);
   const backToConfigurator = `/configurator/${platform.slug}?${BUILD_PARAM}=${encoded}`;

@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { MediaBlock } from "@/components/MediaBlock";
 import { PriceTag } from "@/components/PriceTag";
-import type { Platform } from "@/lib/api";
+import type { Platform } from "@/lib/contract";
 
 type PlatformCardProps = {
   platform: Pick<
