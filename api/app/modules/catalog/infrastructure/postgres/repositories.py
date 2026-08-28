@@ -1,6 +1,10 @@
-"""Every query the catalog module makes, in one place.
+"""Every query the catalog module makes, and its one write, in one place.
 
-Before Stage 10 these were spread across two routers: three per platform inside
+Stage 13 moved the seed's bulk upsert here from ``app/seed.py``, onto
+``IPlatformRepository.upsert_from_catalog`` -- a repository concern like everything else in this
+class, not a script's inline table writes.
+
+Before Stage 10 the queries were spread across two routers: three per platform inside
 ``_serialize_platform``, two lookups in the handlers, and three more in ``quotes`` -- plus one
 lazy load per platform for its groups and one per group for its options, issued by attribute
 access inside the request session. Reading the catalog therefore cost a number of round trips
@@ -26,6 +30,7 @@ from sqlalchemy.sql import Select
 from sqlmodel import col, select
 
 from app.core.infrastructure.postgres.repositories import BaseRepositoryPostgres
+from app.modules.catalog.domain.enums import AssetKind
 from app.modules.catalog.domain.filters import PlatformFilter
 from app.modules.catalog.domain.interfaces import IPlatformRepository
 from app.modules.catalog.domain.models import Platform
@@ -149,3 +154,183 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
             rules_by_platform=rules_by_platform,
             slug_by_option_id={option.id: option.slug for option in options},
         )
+
+    def upsert_from_catalog(self, catalog: dict) -> list[str]:
+        """The bulk, idempotent write ``app/seed.py`` used to do inline against these tables
+        directly. Stage 13 split the argparse shell (``app/seed.py``) from the YAML read
+        (``catalog_file.py``) from this -- the actual storage write, which belongs here with
+        every other catalog query.
+
+        Commits before returning. Unlike ``create``/``update``, which only flush, this is the one
+        write in the service that has to commit before it returns: ``SeedCatalogUseCase`` calls
+        ``ICacheInvalidator.invalidate`` right after this, and revalidating a page cache before
+        the row backing it is durable would tell the web app to refetch a value it can't yet see
+        under read-committed isolation -- refreshing the cache to the *old* value. Same reasoning
+        as ``QuoteRepositoryPostgres.create``'s early commit, for a different reason.
+
+        ``catalog`` must be the *complete* catalog, not one platform's slice: ``_sync_rules``
+        resyncs the whole ``optionrule`` table against ``catalog["rules"]``, deleting any rule
+        not named there regardless of which platform it belongs to. That has always been true of
+        the seed catalog this reads (``seed/catalog.yaml`` is one file naming every rule), so it
+        was never reachable before -- a caller that upserts a subset of platforms with a partial
+        rule list will silently drop every other platform's rules.
+        """
+        for platform_data in catalog["platforms"]:
+            platform = self._upsert_platform(platform_data)
+            self._upsert_platform_assets(platform, platform_data)
+            for group_order, group_data in enumerate(platform_data["option_groups"]):
+                group = self._upsert_option_group(platform, group_order, group_data)
+                for option_order, option_data in enumerate(group_data["options"]):
+                    option = self._upsert_option(group, option_order, option_data)
+                    self._upsert_option_assets(option, option_data)
+
+        self.session.flush()
+        self._sync_rules(catalog["rules"])
+        self.session.commit()
+
+        return [platform_data["slug"] for platform_data in catalog["platforms"]]
+
+    def _upsert_platform(self, data: dict) -> PlatformTable:
+        platform = self.session.exec(
+            select(PlatformTable).where(PlatformTable.slug == data["slug"])
+        ).first()
+        if platform is None:
+            platform = PlatformTable(slug=data["slug"])
+
+        platform.name = data["name"]
+        platform.purpose = data["purpose"]
+        platform.chassis_basis = data["chassis_basis"]
+        platform.base_price_cents = data["base_price_cents"]
+        platform.spec_highlights = data["spec_highlights"]
+        platform.standard_equipment = data["standard_equipment"]
+        self.session.add(platform)
+        self.session.flush()
+        return platform
+
+    def _upsert_platform_assets(self, platform: PlatformTable, data: dict) -> None:
+        existing = self.session.exec(
+            select(AssetTable).where(AssetTable.platform_id == platform.id)
+        ).all()
+        by_key = {(asset.kind, asset.sort_order): asset for asset in existing}
+
+        hero = data["hero_image"]
+        asset = by_key.pop((AssetKind.hero, 0), None) or AssetTable(
+            platform_id=platform.id, kind=AssetKind.hero, sort_order=0, url="", alt_text=""
+        )
+        asset.url = hero["url"]
+        asset.alt_text = hero["alt_text"]
+        self.session.add(asset)
+
+        for i, image in enumerate(data.get("gallery", [])):
+            asset = by_key.pop((AssetKind.gallery, i), None) or AssetTable(
+                platform_id=platform.id, kind=AssetKind.gallery, sort_order=i, url="", alt_text=""
+            )
+            asset.url = image["url"]
+            asset.alt_text = image["alt_text"]
+            self.session.add(asset)
+
+        # Layer 0 of the configurator viewer composite. Option layers carry the same kind but
+        # hang off an option instead, at their own z-index.
+        viewer_base = data.get("viewer_base")
+        if viewer_base is not None:
+            asset = by_key.pop((AssetKind.layer, 0), None) or AssetTable(
+                platform_id=platform.id, kind=AssetKind.layer, sort_order=0, url="", alt_text=""
+            )
+            asset.url = viewer_base["url"]
+            asset.alt_text = viewer_base["alt_text"]
+            self.session.add(asset)
+
+        for stale in by_key.values():
+            self.session.delete(stale)
+
+    def _upsert_option_group(
+        self, platform: PlatformTable, sort_order: int, data: dict
+    ) -> OptionGroupTable:
+        group = self.session.exec(
+            select(OptionGroupTable).where(
+                OptionGroupTable.platform_id == platform.id, OptionGroupTable.slug == data["slug"]
+            )
+        ).first()
+        if group is None:
+            group = OptionGroupTable(platform_id=platform.id, slug=data["slug"])
+
+        group.name = data["name"]
+        group.selection_mode = data["selection_mode"]
+        group.required = data["required"]
+        group.display_style = data["display_style"]
+        group.sort_order = sort_order
+        self.session.add(group)
+        self.session.flush()
+        return group
+
+    def _upsert_option(self, group: OptionGroupTable, sort_order: int, data: dict) -> OptionTable:
+        option = self.session.exec(
+            select(OptionTable).where(OptionTable.slug == data["slug"])
+        ).first()
+        if option is None:
+            option = OptionTable(slug=data["slug"])
+
+        option.group_id = group.id
+        option.name = data["name"]
+        option.price_delta_cents = data["price_delta_cents"]
+        option.description = data.get("description", "")
+        option.sort_order = sort_order
+        self.session.add(option)
+        self.session.flush()
+        return option
+
+    def _upsert_option_assets(self, option: OptionTable, data: dict) -> None:
+        """An option carries at most one ``layer`` (its contribution to the viewer composite,
+        with ``sort_order`` holding the z-index) and one ``thumbnail`` (the chip a swatch group
+        renders). Either may be absent -- an option without a layer simply contributes nothing to
+        the viewer."""
+        existing = self.session.exec(
+            select(AssetTable).where(AssetTable.option_id == option.id)
+        ).all()
+        by_kind = {asset.kind: asset for asset in existing}
+
+        layer = data.get("layer")
+        if layer is not None:
+            asset = by_kind.pop(AssetKind.layer, None) or AssetTable(
+                option_id=option.id, kind=AssetKind.layer, url="", alt_text=""
+            )
+            asset.url = layer["url"]
+            asset.alt_text = layer["alt_text"]
+            asset.sort_order = layer["z"]
+            self.session.add(asset)
+
+        swatch = data.get("swatch")
+        if swatch is not None:
+            asset = by_kind.pop(AssetKind.thumbnail, None) or AssetTable(
+                option_id=option.id, kind=AssetKind.thumbnail, url="", alt_text=""
+            )
+            asset.url = swatch["url"]
+            asset.alt_text = swatch["alt_text"]
+            self.session.add(asset)
+
+        for stale in by_kind.values():
+            self.session.delete(stale)
+
+    def _sync_rules(self, rules_data: list[dict]) -> None:
+        slug_to_id = {
+            option.slug: option.id for option in self.session.exec(select(OptionTable)).all()
+        }
+        wanted = {
+            (slug_to_id[rule["subject"]], rule["relation"], slug_to_id[rule["object"]])
+            for rule in rules_data
+        }
+
+        existing = self.session.exec(select(OptionRuleTable)).all()
+        for rule in existing:
+            key = (rule.subject_option_id, rule.relation, rule.object_option_id)
+            if key not in wanted:
+                self.session.delete(rule)
+            else:
+                wanted.discard(key)
+
+        for subject_id, relation, object_id in wanted:
+            self.session.add(
+                OptionRuleTable(
+                    subject_option_id=subject_id, relation=relation, object_option_id=object_id
+                )
+            )

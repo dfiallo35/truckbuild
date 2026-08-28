@@ -45,6 +45,17 @@ class IPlatformRepository(IBaseRepository):
         pass  # pragma: no cover
 
     @abstractmethod
+    def upsert_from_catalog(self, catalog: dict) -> list[str]:
+        """Upsert every platform in ``catalog`` by slug, and return the slugs it covered.
+
+        Bulk, and shaped like the YAML it reads -- not a single-entity write. ``create`` and
+        ``update`` take one already-built ``Platform``, which has no room for "insert this
+        option, delete that stale asset, sync these rules" across three nested levels. The seed
+        is the one caller.
+        """
+        pass  # pragma: no cover
+
+    @abstractmethod
     def list(self, filters: PlatformFilter) -> list[Platform]:
         pass  # pragma: no cover
 
