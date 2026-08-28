@@ -16,7 +16,9 @@ directories — `api/app/modules/catalog/`, one layer at a time:
 
 ```
 api/seed/catalog.yaml                    source content, version controlled
-        ↓  app/seed.py                   idempotent upsert by slug
+        ↓  catalog/infrastructure/catalog_file.py       YAML read
+        ↓  catalog/application/use_cases.py::SeedCatalogUseCase   upsert by slug
+                                          (app/seed.py is the thin CLI over this)
 Postgres                                 runtime source of truth
         ↓  catalog/infrastructure/postgres/tables.py    SQLModel tables (+ migration if shape changed)
         ↓  catalog/infrastructure/postgres/mappers.py   table → domain entity
@@ -24,7 +26,7 @@ Postgres                                 runtime source of truth
         ↓  catalog/application/mappers.py               domain → DTO
         ↓  catalog/application/dtos.py                  the response shape
         ↓  catalog/presentation/catalog_api.py          GET /v1/catalog, GET /v1/platforms/{slug}
-web/src/lib/api.ts                       Zod parse at the boundary
+web/src/lib/contract.ts                  Zod schemas at the boundary
         ↓  'use cache' + cacheTag('catalog') / cacheTag('platform-<slug>')
         ↓  catalog/infrastructure/webhook/revalidate.py → POST /api/revalidate → revalidateTag
 rendered page
@@ -35,9 +37,9 @@ Since stage 10 a new field crosses **two mappers, not none**: the table → doma
 either is the new common half-finish — the column exists, the entity carries it, and the response
 does not.
 
-Everything above lives under one directory. `app/seed.py` sits outside it on purpose: it is the
-composition root's CLI, and it writes through the tables directly because the catalog is loaded
-from YAML rather than over HTTP.
+Everything above lives under one directory. `app/seed.py` sits outside it on purpose: it's the
+composition root's second CLI entrypoint, and it's the only thing in this chain allowed to build
+an adapter directly rather than receive one through `Depends`.
 
 ## Locating the chain
 
@@ -81,8 +83,10 @@ component renders `undefined` with no error.
    **`infrastructure/postgres/mappers.py`** to carry it across.
 3. **Alembic migration** — shape changes only. Generate it, then *read it* before committing; see the
    `alembic-migration` skill for why autogenerate output is not trustworthy unreviewed.
-4. **`api/app/seed.py`** — upserts by slug so re-seeding is always safe. If you added a field, the
-   upsert has to carry it, or re-seeding will quietly leave existing rows on the old value.
+4. **`api/app/modules/catalog/infrastructure/postgres/repositories.py`**'s
+   `upsert_from_catalog` — upserts by slug so re-seeding is always safe. If you added a field,
+   the upsert has to carry it, or re-seeding will quietly leave existing rows on the old value.
+   `app/seed.py` is a thin CLI over this; it needs no change for a content or field addition.
 5. **`api/app/modules/catalog/application/`** — `dtos.py` for the response shape, then
    `mappers.py` to fill it from the entity. The nested platform → groups → options → rules shape
    goes out in one round trip; the catalog is small, and splitting it costs more than it saves.
@@ -92,7 +96,7 @@ component renders `undefined` with no error.
    `infrastructure/postgres/repositories.py`, added to the fixed set of statements
    `_rows_for` already issues rather than as a lookup per platform.
    `tests/modules/catalog/test_catalog_queries.py` fails if the count moves.
-6. **`web/src/lib/api.ts`** — extend the Zod schema. Parsing rather than casting at this boundary is
+6. **`web/src/lib/contract.ts`** — extend the Zod schema. Parsing rather than casting at this boundary is
    what turns a backend shape change into a clear named-field error instead of a runtime `undefined`
    several components deep.
 7. **Cache tags and revalidation** — the change is invisible until the right tag is revalidated. See
