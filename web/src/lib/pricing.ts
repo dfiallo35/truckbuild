@@ -1,5 +1,5 @@
 /**
- * Build pricing, mirroring `api/app/services/pricing.py`.
+ * Build pricing, mirroring `api/app/modules/catalog/domain/pricing.py`.
  *
  * This half exists only so the configurator's price updates the instant an option is clicked.
  * The Python half is authoritative: `POST /v1/quotes` recomputes the total from the slugs and

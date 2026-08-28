@@ -43,6 +43,9 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      # The module and layer boundaries from docs/stages/08-modules-and-layers.md, as six
+      # contracts in pyproject.toml. A contract nothing runs is a comment.
+      - run: uv run lint-imports
       - run: uv run alembic upgrade head
       # --no-revalidate: a seed run tells the web app to drop its catalog cache, and there is no
       # web app in this job. The webhook itself is covered by tests/test_revalidate.py.

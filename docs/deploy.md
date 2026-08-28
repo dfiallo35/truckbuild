@@ -53,10 +53,10 @@ Both are consequences of moving off a container, and both are worth knowing befo
   command; a Python function has no equivalent hook. Migrations are now run by hand, from a machine with
   the **direct** Neon URL, *before* deploying code that depends on them. Forgetting this is the way to
   break production: the deploy succeeds and the queries fail.
-- **`app/services/ratelimit.py` keeps its counters in memory.** On a container that is a single shared
+- **`app/core/ratelimit.py` keeps its counters in memory.** On a container that is a single shared
   process. On serverless, instances come and go and do not share state, so the lead-form rate limit is
   enforced per instance rather than globally — it still blunts a naive flood, but it is not the control
-  it was. `QUOTE_MIN_SUBMIT_MS` and the honeypot in `app/services/spam.py` are unaffected. Fixing it
+  it was. `QUOTE_MIN_SUBMIT_MS` and the honeypot in `app/modules/quotes/domain/spam.py` are unaffected. Fixing it
   properly means moving the counter into Postgres or a KV store.
 
 ## 0. What you need first

@@ -39,7 +39,7 @@ by convention.
 | 5 | [Quote pipeline](stages/05-quote-pipeline.md) — server-authoritative submission, email | **Complete** |
 | 6 | [Admin & revalidation](stages/06-admin-revalidation.md) — quote listing, cache webhook | **Complete** |
 | 7 | [Polish & deploy](stages/07-polish-deploy.md) — perf, a11y, Vercel + Neon | **Complete** |
-| 8 | [Modules & layers](stages/08-modules-and-layers.md) — the move, and import-linter in CI | Not started |
+| 8 | [Modules & layers](stages/08-modules-and-layers.md) — the move, and import-linter in CI | **Complete** |
 | 9 | [Repositories](stages/09-repositories.md) — the queries leave the routers | Not started |
 | 10 | [Use cases](stages/10-use-cases.md) — one call per endpoint | Not started |
 | 11 | [Seeding, web & docs](stages/11-seeding-web-docs.md) — closing the migration | Not started |
@@ -57,14 +57,13 @@ truckbuild/
 │   ├── alembic/
 │   ├── seed/catalog.yaml       # versioned placeholder catalog
 │   └── app/
-│       ├── main.py
-│       ├── config.py           # pydantic-settings
-│       ├── db.py
-│       ├── models/             # SQLModel tables
-│       ├── schemas/            # Pydantic request/response models
-│       ├── routers/            # catalog.py, builds.py, quotes.py, admin.py
-│       ├── services/           # pricing.py, rules.py, mailer.py, revalidate.py
-│       └── seed.py
+│       ├── main.py             # composition root: mounts each module's router
+│       ├── seed.py             # catalog.yaml → Postgres
+│       ├── core/               # config, db, errors, telemetry, ratelimit, revalidate
+│       └── modules/            # one package per feature, four layers each
+│           ├── catalog/        # domain/ application/ infrastructure/ presentation/
+│           ├── quotes/         # domain/ application/ infrastructure/ presentation/
+│           └── admin/          # application/ presentation/ — owns no tables
 └── web/                        # Next.js 16 app
     ├── next.config.ts          # cacheComponents: true
     └── src/

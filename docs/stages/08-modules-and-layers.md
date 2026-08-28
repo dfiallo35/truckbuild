@@ -1,6 +1,6 @@
 # Stage 8 — Modules and layers, no behaviour change
 
-> **Status: not started.**
+> **Status: complete.**
 
 **Goal:** `api/app/` is a set of feature modules, each carrying its own four layers over a shared
 `core`, assembled into one FastAPI app at one composition root. The layer rule, the module direction,
@@ -194,9 +194,14 @@ restructure needs no packaging change at all.
    `test_pricing.py`, `test_rules.py`, `test_lead_controls.py`. Mirror the module structure in
    `tests/` while you are there, so a test's location says which module it covers.
 6. **Add `import-linter`** to the dev dependency group, configured under `[tool.importlinter]` in
-   `api/pyproject.toml`. Five contracts, all of which the just-moved tree already satisfies:
+   `api/pyproject.toml`. Set `include_external_packages = true`, without which the last two
+   contracts cannot name `fastapi`, `httpx` or `sqlmodel` at all. Six contracts — the facade rule
+   needs two, one per importable module, because a `forbidden` contract cannot name the same
+   package as both source and target and `quotes` is both:
    - **Layers**, applied to all three modules at once with `containers` — one contract, not three,
-     so a fourth module is covered the day it is created.
+     so a fourth module is covered the day it is created. `admin` has neither a `domain` nor an
+     `infrastructure`, so both are wrapped in parentheses: that is import-linter's syntax for a
+     layer that need not exist, and without it the contract errors rather than runs.
    - **Module direction** — `core` is forbidden from importing `app.modules`; `catalog` from
      importing `quotes` or `admin`; `quotes` from importing `admin`.
    - **Module facades** — no module may import another module's `presentation` or `infrastructure`.
@@ -208,6 +213,26 @@ restructure needs no packaging change at all.
      importing `sqlmodel` and `sqlalchemy`. This is the existing rule from
      [01-backend-catalog.md](01-backend-catalog.md) — until now asserted in a docstring and grepped
      for by hand in the `stage-checkpoint` skill, and from here on checked.
+
+   **Three imports do not survive the move, and are pinned rather than papered over.** This stage
+   plan claimed the moved tree would satisfy every contract; it does not, because two of the
+   entanglements stages 9 and 10 exist to remove are visible the moment the layout makes them
+   visible. Both come down to one fact: `QuoteDetail` is a *wire* schema being used as the quotes
+   module's internal currency, and the router calls the mail adapter directly.
+
+   | Import | Rule | Removed by |
+   |---|---|---|
+   | `quotes.presentation.router → quotes.infrastructure.mail` | layers | Stage 10 — the router calls a use case that owns the mail port |
+   | `quotes.infrastructure.mail → quotes.presentation.schemas` | layers | Stage 10 — mail renders a use-case result, not a response schema |
+   | `admin.presentation.router → quotes.presentation.schemas` | facade | Stage 10 — admin calls a quotes use case |
+
+   They are listed as named `ignore_imports` entries against the contract each one breaks, with a
+   comment naming the stage that deletes it. Fixing them here would mean moving `QuoteDetail` and
+   introducing a mail port — code changes, in the commit that is supposed to contain only moves.
+   Weakening the contracts instead would hide three couplings behind a rule that no longer says
+   anything. An enumerated list of three is neither: it keeps the rule at full strength, and it is
+   a countdown that should only ever shrink. `unmatched_ignore_imports_alerting` defaults to
+   `error`, so an entry that stops matching fails the build rather than lingering.
 7. **Add `uv run lint-imports` to the api job** in `.github/workflows/ci.yml`, after
    `ruff format --check`. A contract nothing runs is a comment.
 8. **Set `known-first-party = ["app", "tests"]`** under `[tool.ruff.lint.isort]`. Ruff's `I` rule is
@@ -248,12 +273,15 @@ uv run alembic check
 curl -s localhost:8000/v1/catalog | jq -S . | diff /tmp/catalog.before.json -
 curl -s localhost:8000/v1/platforms/bristlecone | jq -S . | diff /tmp/platform.before.json -
 
-grep -rn "app/models\|app/schemas\|app/routers\|app/services" ../CLAUDE.md ../docs ../.claude/skills
+# The stage records under docs/stages/ are excluded on purpose: 01 and this file describe the
+# layout as it was and the move itself, which is history rather than a live path reference.
+grep -rn "app/models\|app/schemas\|app/routers\|app/services" \
+  ../CLAUDE.md ../docs ../.claude/skills ../README.md ../web/src | grep -v "docs/stages/0[18]"
 # no hits
 ```
 
 ## Done when
 
 Both golden diffs are empty, `alembic check` reports no pending changes, `uv run lint-imports` is
-green in CI with all five contracts, and no document or skill in the repository names a directory
-that no longer exists.
+green in CI with all six contracts, and no document, skill or source comment in the repository names
+a directory that no longer exists.

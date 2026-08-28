@@ -7,7 +7,7 @@ description: Runs a TruckBuild stage's checkpoint from docs/stages/ and reports 
 
 ## How this project is organized
 
-The build is eight staged, independently reviewable steps. `docs/PLAN.md` is the index and carries the
+The build is twelve staged, independently reviewable steps (0–7 built the app, 8–11 restructure the API). `docs/PLAN.md` is the index and carries the
 status table; each `docs/stages/NN-*.md` file has steps, a runnable **Checkpoint**, and **Done when**
 criteria. A stage does not begin until the previous checkpoint passes — that gate is the whole point of
 the structure, and skipping it moves the failure later where it costs more.
@@ -30,10 +30,14 @@ the structure, and skipping it moves the failure later where it costs more.
    text in a file are grep's job; criteria about who calls what are CodeGraph's, since an indirect call
    through a helper reads as clean under grep:
    ```bash
-   grep -rn "fastapi\|sqlmodel" api/app/services/pricing.py api/app/services/rules.py
    grep -rniE "#[0-9a-f]{3,8}" web/src/components/    # tokens only, no hardcoded colors
    codegraph explore "what calls the catalog fetch functions in web/src/lib/api.ts"
    ```
+
+   Since stage 8, the criteria about *which module may import which* are no longer grep's job either
+   — `uv run lint-imports` checks the layer, module-direction, facade, domain-isolation and
+   pricing-mirror-purity contracts declared in `api/pyproject.toml`, and it is part of the sweep
+   below. Read its output rather than re-deriving the same rules by hand.
 7. **Report against evidence**, then update status.
 
 ## The CI-equivalent sweep
@@ -46,6 +50,7 @@ cd api
 uv sync --locked
 uv run ruff check .
 uv run ruff format --check .
+uv run lint-imports
 uv run pytest -q
 
 cd ../web

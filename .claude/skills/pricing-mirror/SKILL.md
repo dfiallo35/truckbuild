@@ -1,6 +1,6 @@
 ---
 name: pricing-mirror
-description: Keeps TruckBuild's two implementations of price_build and validate_selection in sync — Python in api/app/services/ (authoritative) and TypeScript in web/src/lib/ (instant UI feedback) — using a shared fixture file so they cannot silently drift. Use this whenever you touch pricing arithmetic, price deltas, base prices, option compatibility rules, requires/excludes relations, or any of pricing.py, rules.py, pricing.ts, rules.ts. Also use it when adding or repricing an option, adding a rule, or writing tests for any of the above — including when the change looks like it only affects one side, because a one-sided change is exactly the failure this skill exists to prevent.
+description: Keeps TruckBuild's two implementations of price_build and validate_selection in sync — Python in api/app/modules/catalog/domain/ (authoritative) and TypeScript in web/src/lib/ (instant UI feedback) — using a shared fixture file so they cannot silently drift. Use this whenever you touch pricing arithmetic, price deltas, base prices, option compatibility rules, requires/excludes relations, or any of pricing.py, rules.py, pricing.ts, rules.ts. Also use it when adding or repricing an option, adding a rule, or writing tests for any of the above — including when the change looks like it only affects one side, because a one-sided change is exactly the failure this skill exists to prevent.
 ---
 
 # Pricing mirror
@@ -11,7 +11,7 @@ description: Keeps TruckBuild's two implementations of price_build and validate_
 
 | Implementation | Location | Role |
 |---|---|---|
-| Python | `api/app/services/pricing.py`, `api/app/services/rules.py` | **Authoritative.** What the customer is actually quoted. |
+| Python | `api/app/modules/catalog/domain/pricing.py`, `api/app/modules/catalog/domain/rules.py` | **Authoritative.** What the customer is actually quoted. |
 | TypeScript | `web/src/lib/pricing.ts`, `web/src/lib/rules.ts` | UX affordance only. Instant price updates as options are clicked. |
 
 `docs/decisions.md` records this as a knowingly accepted risk. The duplication buys a configurator

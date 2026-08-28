@@ -3,9 +3,13 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
-import app.models  # noqa: F401  -- registers every table on SQLModel.metadata
+# One import per module's entity package: autogenerate only sees tables that have been
+# imported, and a module left off this list is a module whose tables a migration drops.
+# tests/test_entity_registry.py is the guard that catches the omission.
+import app.modules.catalog.domain.entities  # noqa: F401
+import app.modules.quotes.domain.entities  # noqa: F401
 from alembic import context
-from app.config import get_settings
+from app.core.config import get_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

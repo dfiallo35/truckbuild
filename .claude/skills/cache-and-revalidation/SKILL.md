@@ -1,6 +1,6 @@
 ---
 name: cache-and-revalidation
-description: TruckBuild's caching contract — catalog reads live inside 'use cache' functions tagged catalog and platform-<slug>, and FastAPI revalidates those tags over a shared-secret webhook. Use this whenever adding or changing a page, layout, route handler, or any function in web/src/ that reads catalog data, whenever touching next.config.ts, the /api/revalidate route, or app/services/revalidate.py, and whenever a catalog edit is correct in Postgres but the site still shows the old value, a page unexpectedly renders dynamically, or a build stops reporting Cache Components as enabled. This caching layer is the resolution to the project's central architectural tension, so breaking it quietly breaks the premise of the whole front end.
+description: TruckBuild's caching contract — catalog reads live inside 'use cache' functions tagged catalog and platform-<slug>, and FastAPI revalidates those tags over a shared-secret webhook. Use this whenever adding or changing a page, layout, route handler, or any function in web/src/ that reads catalog data, whenever touching next.config.ts, the /api/revalidate route, or app/core/revalidate.py, and whenever a catalog edit is correct in Postgres but the site still shows the old value, a page unexpectedly renders dynamically, or a build stops reporting Cache Components as enabled. This caching layer is the resolution to the project's central architectural tension, so breaking it quietly breaks the premise of the whole front end.
 ---
 
 # Caching and revalidation
@@ -49,7 +49,7 @@ as an `undefined` with no trail back to the cause.
 
 ## The revalidation webhook
 
-`api/app/services/revalidate.py` POSTs `{tags: [...]}` to the web app's `/api/revalidate` with the
+`api/app/core/revalidate.py` POSTs `{tags: [...]}` to the web app's `/api/revalidate` with the
 shared `REVALIDATE_SECRET`. The route verifies the secret and calls `revalidateTag` for each tag.
 
 Two things about this are easy to get wrong:

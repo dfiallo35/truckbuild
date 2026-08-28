@@ -16,10 +16,11 @@ from pathlib import Path
 import yaml
 from sqlmodel import Session, select
 
-from app.config import get_settings
-from app.db import engine
-from app.models import Asset, AssetKind, Option, OptionGroup, OptionRule, Platform
-from app.services.revalidate import revalidate, tags_for_platforms
+from app.core.config import get_settings
+from app.core.db import engine
+from app.core.revalidate import revalidate, tags_for_platforms
+from app.modules.catalog.domain.entities import Asset, Option, OptionGroup, OptionRule, Platform
+from app.modules.catalog.domain.enums import AssetKind
 
 logger = logging.getLogger(__name__)
 

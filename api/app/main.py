@@ -7,12 +7,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException
 
-from app.config import get_settings
-from app.errors import http_error_handler, validation_error_handler
-from app.routers.admin import router as admin_router
-from app.routers.catalog import router as catalog_router
-from app.routers.quotes import router as quotes_router
-from app.services.telemetry import install as install_telemetry
+from app.core.config import get_settings
+from app.core.errors import http_error_handler, validation_error_handler
+from app.core.telemetry import install as install_telemetry
+from app.modules.admin import router as admin_router
+from app.modules.catalog import router as catalog_router
+from app.modules.quotes import router as quotes_router
 
 settings = get_settings()
 
@@ -46,7 +46,7 @@ app.add_middleware(
 install_telemetry(app, settings)
 
 # Every rejection leaves this API in one shape, FastAPI's own 422 included, so the web app
-# has a single error body to parse and render beside the field at fault. See app/errors.py.
+# has a single error body to parse and render beside the field at fault. See app/core/errors.py.
 app.add_exception_handler(RequestValidationError, validation_error_handler)
 app.add_exception_handler(HTTPException, http_error_handler)
 

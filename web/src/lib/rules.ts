@@ -1,5 +1,5 @@
 /**
- * Option compatibility rules, mirroring `api/app/services/rules.py`.
+ * Option compatibility rules, mirroring `api/app/modules/catalog/domain/rules.py`.
  *
  * Like the pricing mirror, this half is a UX affordance: it lets the configurator explain a
  * conflict the moment it appears instead of after a round trip. The Python half decides

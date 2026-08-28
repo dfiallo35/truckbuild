@@ -19,7 +19,7 @@ export type LeadFormState = {
 
 export const IDLE_LEAD_STATE: LeadFormState = { status: "idle", message: "", errors: {} };
 
-/** Filled in by a bot, never by a person -- see api/app/services/spam.py. */
+/** Filled in by a bot, never by a person -- see api/app/modules/quotes/domain/spam.py. */
 export const HONEYPOT_FIELD = "website";
 
 /** When the form was rendered, so the API can tell typing from scripting. */
