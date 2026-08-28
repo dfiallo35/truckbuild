@@ -123,10 +123,12 @@ CI-equivalent sweep, then open the PR with the `open-pr` skill. Branch off a fre
 commit to `main` directly. If an open PR already covers the same concern, add a commit to it instead
 of opening a second one that will conflict.
 
-The build is split into eight staged, independently reviewable steps in `docs/PLAN.md`, each with its own
+The build is split into staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-All eight stages (0–7) are complete. The site is deployed at <https://truckbuild.vercel.app>
+Stages 0–7 (the build) are complete; stages 8–11 restructure `api/` into a modular monolith —
+feature modules under `app/modules/`, each with its own four clean-architecture layers over a
+shared `app/core/`, all mounted on one FastAPI app. Not started. The site is deployed at <https://truckbuild.vercel.app>
 with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
 and also records why the API runs as a Vercel Python function rather than the container
 `api/render.yaml` still describes.
