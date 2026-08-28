@@ -78,38 +78,85 @@ near-immediate updates without the site paying a per-request API cost. The tags 
 version-controlled source; `app/seed.py` upserts it by slug, so re-running is always safe. Postgres
 remains what the API reads. This is also the seam a CMS would later plug into.
 
-## Boundaries that must hold
+## The rules
 
-These are load-bearing. Breaking one does not fail loudly.
+TruckBuild is a **modular monolith**: one process, one database, one deployable. The module
+boundaries inside `api/app/modules/` are drawn where a service boundary would go if this ever
+needed to split — nothing under `modules/` is deployed separately, on purpose, so a boundary can
+be tightened in code long before it costs an actual network hop.
 
-**`catalog/domain/pricing.py` and `catalog/domain/rules.py` are pure** — no `fastapi`, no
-`sqlmodel` imports. That purity is what makes them cheap to test without a database and safe to
-mirror on the client. Both are written test-first, and the rule is now checked by the
-`Pricing mirror purity` import contract rather than trusted to a docstring.
+These are load-bearing. Breaking one does not fail loudly, which is why each is checked by a
+specific tool rather than trusted to review.
 
-**The pricing mirror is deliberate duplication.** `price_build` exists twice: Python
-(`api/app/modules/catalog/domain/pricing.py`, authoritative) and TypeScript (`web/src/lib/pricing.ts`, for instant
-UI feedback as a visitor clicks). Same for `validate_selection` / `rules.ts`. The only thing keeping
-them from drifting is that **both are tested against a single shared JSON fixture** consumed by
-pytest and Vitest — add a case on one side and the other side fails.
+| Rule | What it means | Checked by |
+|---|---|---|
+| Layers inside a module | `presentation → infrastructure → application → domain`, arrows one way. The two adapters (`presentation`, `infrastructure`) are siblings and neither imports the other | `uv run lint-imports` (`api/pyproject.toml`) |
+| Module direction | `admin → quotes → catalog → core`, a DAG. `core` imports no module, ever | `uv run lint-imports` |
+| Facades | Another module sees only your `application` and `domain` — never your `presentation` or `infrastructure`. Test: *if this module went behind an HTTP call tomorrow, would this import still make sense?* | `uv run lint-imports` |
+| A domain imports no ORM | `app/modules/*/domain/` and `app/core/domain/` name no `sqlmodel`, no `fastapi` | `uv run lint-imports` (`Domain forbids persistence`) |
+| A presentation writes no query | No router imports a repository directly — every query happens behind `application` | `uv run lint-imports` (`Presentation forbids persistence`) |
+| The pricing mirror is pure | `catalog/domain/pricing.py`, `catalog/domain/rules.py` name no `fastapi`, no `sqlmodel` | `uv run lint-imports` (`Pricing mirror purity`) |
+| Every port is bound | Each `presentation` declares what it needs as a function that raises `NotImplementedError`; `app/main.py`'s `PORT_BINDINGS` fills every one | `tests/test_composition_root.py` |
 
-**The server price is authoritative.** `POST /v1/quotes` re-validates the selection and recomputes the
-total from the database, ignoring any client-supplied price. The mirror is a UX affordance; it is
-never trusted.
+Four more rules, checked less mechanically but just as real:
 
-**The browser never sees the API origin.** `API_BASE_URL` is server-side only and must never be
-prefixed `NEXT_PUBLIC_`. The browser reaches FastAPI exclusively through Server Actions and route
-handlers.
+**The pricing mirror is deliberate duplication.** `price_build` exists in Python
+(`catalog/domain/pricing.py`, authoritative) and in TypeScript (`web/src/lib/pricing.ts`, instant
+UI feedback). Both are tested against **one shared fixture**, `fixtures/pricing-cases.json` — the
+only thing keeping them from drifting.
 
-**Every backend response is parsed with Zod**, in `web/src/lib/api.ts`, rather than cast. A backend
-shape change surfaces as a named field error at the boundary instead of a runtime `undefined` three
-components deep.
+**The server price is authoritative.** `POST /v1/quotes` re-validates the selection and
+recomputes the total, ignoring any client-supplied price.
 
-**Every environment variable is declared in `app/config.py`** (pydantic-settings), so a missing or
-malformed value fails at startup rather than deep inside a request.
+**The browser never sees the API origin.** `API_BASE_URL` is server-side only, never prefixed
+`NEXT_PUBLIC_`. The browser reaches FastAPI only through Server Actions and route handlers.
 
-**Slugs are public identifiers.** They appear in URLs and in shared build links. Renaming one is a
+**Slugs are the public identifiers.** They appear in URLs and shared builds. Renaming one is a
 breaking change.
+
+Two more, about how the two services talk to data:
+
+**Every backend response is parsed with Zod**, in `web/src/lib/contract.ts`, rather than cast — a
+backend shape change surfaces as a named field error at the boundary instead of a runtime
+`undefined` three components deep.
+
+**Every environment variable is declared in `app/core/config.py`** (pydantic-settings), so a
+missing or malformed value fails at startup rather than deep inside a request.
+
+## Adding a module
+
+A new feature module is twelve files, built in dependency order — each layer only needs what
+came before it:
+
+1. `domain/models.py` — pure pydantic entities, on `core`'s `BaseEntity`
+2. `domain/interfaces.py` — this module's ports (an `I<Name>Repository` at minimum)
+3. `domain/filters.py` — a `BaseFilter` subclass per queryable entity
+4. `infrastructure/postgres/tables.py` — the SQLModel tables, `__tablename__` pinned
+5. `infrastructure/postgres/mappers.py` — table ↔ domain, assembled from already-loaded rows
+6. `infrastructure/postgres/repositories.py` — the port's Postgres implementation
+7. `application/dtos.py` — request/response shapes
+8. `application/mappers.py` — domain ↔ DTO
+9. `application/use_cases.py` — one class per operation, overriding `BaseUseCase` hooks
+10. `application/services.py` — the module's facade: wires use cases together for its router
+11. `dependencies.py` — this module's own composition root, binding its ports to step 6 and 10
+12. `presentation/<name>_api.py` — the router; declares any port it needs from *another* module
+    as a function that raises `NotImplementedError`
+
+Then four wiring points, none of them inside the twelve files above:
+
+- **`app/main.py`** — mount the new router, and if `presentation/<name>_api.py` declared a port
+  onto another module, add it to `PORT_BINDINGS`
+- **The module's own `dependencies.py`** (file 11) — already built with the module, but worth
+  naming separately: it's the one file allowed to see both an adapter and an inner layer
+- **`SQLModel.metadata`, via the table import** — a new `tables.py` has to be reached by
+  `alembic/env.py`'s import list, or autogenerate never sees it (`tests/test_entity_registry.py`
+  fails if it's missed)
+- **An Alembic migration** — see the `alembic-migration` skill
+
+`tests/test_composition_root.py` fails if a declared port is left unbound; `uv run lint-imports`
+fails if a layer or facade rule is broken. Both run in CI, so a half-wired module fails fast
+rather than as a 500 on the one endpoint nobody exercised in review. See also the `new-module`
+skill, which walks this same checklist.
 
 ## Build state lives in the URL
 
@@ -158,7 +205,7 @@ The one flow that crosses every boundary:
 7. The mailer notifies sales — or logs, when `RESEND_API_KEY` is unset.
 8. The visitor lands on `/thank-you` with the reference number.
 
-Rejections all come back in one error shape (`api/app/errors.py`), FastAPI's own 422 included, so the
+Rejections all come back in one error shape (`api/app/core/presentation/errors.py`), FastAPI's own 422 included, so the
 web app has a single body to parse and render beside the field at fault.
 
 ## Observability
@@ -202,38 +249,46 @@ Telemetry is added last so it stamps the request id before anything else can fai
 ```
 api/
   app/
-    main.py             composition root — mounts each module's router
-    seed.py             catalog.yaml → Postgres
-    core/               shared by every module, imports none of them
-      config.py         every env var declared      db.py         engine & session
-      errors.py         the one error envelope      telemetry.py  request logs & Sentry
-      ratelimit.py      in-process window           revalidate.py cache-tag webhook
+    main.py             composition root — mounts each module's router, binds every port
+    seed.py             thin CLI: reads catalog.yaml, calls catalog's SeedCatalogUseCase
+    core/                shared kernel, its own four layers — imports no module
+      config.py          every env var declared, read by every layer, belongs to none
+      domain/            BaseEntity · IBaseRepository · IRateLimiter · BaseFilter · BaseError
+      application/        BaseUseCase + CRUD subclasses · BaseService · BaseMapper
+      infrastructure/     BaseTable · BaseRepositoryPostgres · engine & session · ratelimit
+      presentation/       create_app · exception handlers · telemetry · query filters
     modules/
-      catalog/          platforms · option groups · options · rules · assets
-        domain/         entities/ · enums.py · pricing.py · rules.py
-                        ↑ pricing and rules are pure, mirrored, test-first
-        application/    infrastructure/             (stages 9–12 fill these)
-        presentation/   router.py · schemas.py
-      quotes/           lead submission, priced by the server
-        domain/         entities/ · enums.py · refs.py · spam.py
-        application/    infrastructure/mail.py
-        presentation/   router.py · schemas.py
-      admin/            guarded reads over quotes and catalog — owns no tables,
-        application/    so it carries no domain and no infrastructure
-        presentation/   router.py · schemas.py
+      catalog/           platforms · option groups · options · rules · assets
+        domain/           models.py (pure) · interfaces.py · filters.py · pricing.py · rules.py
+        infrastructure/    postgres/ (tables · mappers · repositories, incl. the seed upsert)
+                           catalog_file.py (YAML read) · webhook/revalidate.py
+        application/       dtos.py · mappers.py · use_cases.py · services.py
+        presentation/      catalog_api.py · filters.py
+        dependencies.py    binds this module's ports to its adapters
+      quotes/            lead submission, priced by the server
+        domain/           models.py · interfaces.py · filters.py · refs.py · spam.py · selection.py
+        infrastructure/    postgres/ (tables · mappers · repositories) · mail.py
+        application/       dtos.py · mappers.py · use_cases.py · services.py · interfaces.py
+        presentation/      quotes_api.py · routes.py
+        dependencies.py
+      admin/             guarded reads over quotes and catalog — owns no tables
+        application/       dtos.py · use_cases.py · mappers.py
+        presentation/       admin_api.py · dependencies.py · filters.py · routes.py
   seed/catalog.yaml   versioned catalog content
   alembic/            migrations
 
 web/src/
-  app/(site)/         marketing pages, with Header + Footer
-  app/configurator/   full-bleed, outside the (site) group
-  app/api/            revalidate · client-error
-  components/         configurator/ · leads/ · shared
+  app/(site)/          marketing pages, with Header + Footer
+  app/configurator/     full-bleed, outside the (site) group
+  app/api/              revalidate · client-error
+  components/           configurator/ · leads/ · shared
   lib/
-    api.ts       Zod-parsed API client        catalog.ts  'use cache' reads
-    build.ts     URL build encoding           pricing.ts  ← mirrors pricing.py
-    rules.ts     ← mirrors rules.py           actions.ts  Server Actions
-    purposes.ts  editorial verticals          site.ts     SITE_URL, nav, footer
+    contract.ts   Zod schemas + wire types      api.ts       transport: fetch, parse, POST
+    catalog.ts    'use cache' reads              build.ts     URL build encoding
+    buildView.ts  shared build derivation        pricing.ts  ← mirrors pricing.py
+    rules.ts      ← mirrors rules.py             format.ts   money formatting (Intl)
+    actions.ts    Server Actions                 leads.ts    form ↔ payload
+    purposes.ts   editorial verticals            site.ts     SITE_URL, nav, footer
 ```
 
 `purposes.ts` is worth a note: purpose verticals (Expedition, Service, Response) are **editorial
