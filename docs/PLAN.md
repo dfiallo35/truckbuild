@@ -53,7 +53,7 @@ ORM**, checked by an import-linter contract rather than by review.
 | 7 | [Polish & deploy](stages/07-polish-deploy.md) — perf, a11y, Vercel + Neon | **Complete** |
 | 8 | [Modules & layers](stages/08-modules-and-layers.md) — the move, and import-linter in CI | **Complete** |
 | 9 | [The kernel](stages/09-core-kernel.md) — `core` grows its own four layers | **Complete** |
-| 10 | [`catalog` slice](stages/10-catalog-slice.md) — entities split from tables, the N+1 goes | Not started |
+| 10 | [`catalog` slice](stages/10-catalog-slice.md) — entities split from tables, the N+1 goes | **Complete** |
 | 11 | [`quotes` slice](stages/11-quotes-slice.md) — one use case per endpoint, ports for mail and rate limiting | Not started |
 | 12 | [`admin` slice](stages/12-admin-slice.md) — filters, its own DTOs, the full contract set | Not started |
 | 13 | [Seeding, web & docs](stages/13-seeding-web-docs.md) — closing the migration | Not started |

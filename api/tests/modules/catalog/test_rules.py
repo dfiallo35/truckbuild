@@ -1,22 +1,35 @@
 """validate_selection is exercised against the shared fixtures/pricing-cases.json, and against
 every requires/excludes rule in the seed catalog, both satisfied and violated. See
-.claude/skills/pricing-mirror."""
+.claude/skills/pricing-mirror.
 
-from app.modules.catalog.domain.rules import (
-    OptionRule,
-    RuleablePlatform,
-    RuleViolation,
-    validate_selection,
-)
+Since Stage 10 it takes the catalog's own ``Platform`` and ``OptionRule`` -- built here straight
+from the seed YAML, with no database anywhere near it.
+"""
+
+from app.modules.catalog.domain.models import OptionRule, Platform
+from app.modules.catalog.domain.rules import RuleViolation, validate_selection
 from tests.conftest import rules_for_platform
 
 
-def _rules_platform(catalog_yaml: dict, slug: str) -> RuleablePlatform:
-    rules = [
-        OptionRule(subject=rule["subject"], relation=rule["relation"], object=rule["object"])
-        for rule in rules_for_platform(catalog_yaml, slug)
-    ]
-    return RuleablePlatform(slug=slug, rules=rules)
+def _platform(slug: str, rules: list[OptionRule]) -> Platform:
+    return Platform(
+        slug=slug,
+        name=slug,
+        purpose="test",
+        chassis_basis="test",
+        base_price_cents=0,
+        rules=rules,
+    )
+
+
+def _rules_platform(catalog_yaml: dict, slug: str) -> Platform:
+    return _platform(
+        slug,
+        [
+            OptionRule(subject=rule["subject"], relation=rule["relation"], object=rule["object"])
+            for rule in rules_for_platform(catalog_yaml, slug)
+        ],
+    )
 
 
 def _violation_matches(violation: RuleViolation, expected: dict) -> bool:
@@ -37,34 +50,30 @@ def test_rules_fixture_cases(catalog_yaml: dict, pricing_cases: list[dict]) -> N
 
 
 def test_winch_requires_heavy_bumper_violation() -> None:
-    platform = RuleablePlatform(
-        slug="p",
-        rules=[OptionRule(subject="winch", relation="requires", object="bumper-heavy")],
+    platform = _platform(
+        "p", [OptionRule(subject="winch", relation="requires", object="bumper-heavy")]
     )
     violations = validate_selection(platform, ["winch"])
     assert violations == [RuleViolation(kind="requires", option="winch", needs="bumper-heavy")]
 
 
 def test_winch_requires_heavy_bumper_satisfied() -> None:
-    platform = RuleablePlatform(
-        slug="p",
-        rules=[OptionRule(subject="winch", relation="requires", object="bumper-heavy")],
+    platform = _platform(
+        "p", [OptionRule(subject="winch", relation="requires", object="bumper-heavy")]
     )
     assert validate_selection(platform, ["winch", "bumper-heavy"]) == []
 
 
 def test_requires_rule_does_not_fire_when_subject_unselected() -> None:
-    platform = RuleablePlatform(
-        slug="p",
-        rules=[OptionRule(subject="winch", relation="requires", object="bumper-heavy")],
+    platform = _platform(
+        "p", [OptionRule(subject="winch", relation="requires", object="bumper-heavy")]
     )
     assert validate_selection(platform, ["bumper-heavy"]) == []
 
 
 def test_lithium_excludes_compact_galley_violation() -> None:
-    platform = RuleablePlatform(
-        slug="p",
-        rules=[OptionRule(subject="lithium-600ah", relation="excludes", object="galley-compact")],
+    platform = _platform(
+        "p", [OptionRule(subject="lithium-600ah", relation="excludes", object="galley-compact")]
     )
     violations = validate_selection(platform, ["lithium-600ah", "galley-compact"])
     assert violations == [
@@ -73,13 +82,12 @@ def test_lithium_excludes_compact_galley_violation() -> None:
 
 
 def test_lithium_excludes_compact_galley_satisfied() -> None:
-    platform = RuleablePlatform(
-        slug="p",
-        rules=[OptionRule(subject="lithium-600ah", relation="excludes", object="galley-compact")],
+    platform = _platform(
+        "p", [OptionRule(subject="lithium-600ah", relation="excludes", object="galley-compact")]
     )
     assert validate_selection(platform, ["lithium-600ah", "galley-full"]) == []
 
 
 def test_no_rules_no_violations() -> None:
-    platform = RuleablePlatform(slug="p", rules=[])
+    platform = _platform("p", [])
     assert validate_selection(platform, ["anything"]) == []

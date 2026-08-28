@@ -17,17 +17,17 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from app.core.application.dtos import FieldError
 from app.core.config import Settings, get_settings
 from app.core.infrastructure.postgres.database import get_session
 from app.core.infrastructure.ratelimit import RateLimiter
 from app.core.presentation.errors import error_response
-from app.modules.catalog.domain.entities import Option, OptionRule, Platform
-from app.modules.catalog.domain.pricing import PriceableOption, PriceablePlatform, price_build
-from app.modules.catalog.domain.rules import OptionRule as PureRule
-from app.modules.catalog.domain.rules import RuleablePlatform, validate_selection
+from app.modules.catalog.domain.interfaces import IPlatformRepository
+from app.modules.catalog.domain.models import Platform
+from app.modules.catalog.domain.pricing import price_build
+from app.modules.catalog.domain.rules import validate_selection
 from app.modules.quotes.domain.entities import Quote, QuoteLine
 from app.modules.quotes.domain.enums import QuoteKind
 from app.modules.quotes.domain.refs import new_ref
@@ -46,6 +46,24 @@ router = APIRouter(prefix="/v1", tags=["quotes"])
 
 SessionDep = Annotated[Session, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+
+def get_platform_repository() -> IPlatformRepository:  # pragma: no cover - bound in app/main.py
+    """The port this module reads the catalog through, bound at the composition root.
+
+    ``quotes`` may name ``catalog``'s ``domain`` and ``application`` and never its adapters (the
+    facade rule, CLAUDE.md), so it declares what it needs and ``app/main.py`` -- which is allowed
+    to know how the application is assembled -- binds it to
+    ``app/modules/catalog/dependencies.py``. An unbound port fails loudly on
+    the first request rather than quietly returning nothing;
+    ``tests/test_composition_root.py`` fails before that.
+    """
+    raise NotImplementedError(
+        "get_platform_repository is bound at the composition root in app/main.py"
+    )
+
+
+PlatformsDep = Annotated[IPlatformRepository, Depends(get_platform_repository)]
 
 _settings = get_settings()
 limiter = RateLimiter(
@@ -92,37 +110,13 @@ def _guard(request: Request, submission, settings: Settings) -> JSONResponse | N
     return None
 
 
-def _platform_by_slug(session: Session, slug: str) -> Platform | None:
-    return session.exec(select(Platform).where(Platform.slug == slug)).first()
-
-
-def _options_of(platform: Platform) -> list[Option]:
-    return [option for group in platform.option_groups for option in group.options]
-
-
-def _rules_of(session: Session, options: list[Option]) -> list[PureRule]:
-    slug_by_id = {option.id: option.slug for option in options}
-    rows = session.exec(
-        select(OptionRule).where(OptionRule.subject_option_id.in_(slug_by_id))
-    ).all()
-    return [
-        PureRule(
-            subject=slug_by_id[row.subject_option_id],
-            relation=row.relation,
-            object=slug_by_id[row.object_option_id],
-        )
-        for row in rows
-        if row.object_option_id in slug_by_id
-    ]
-
-
 def _structural_errors(platform: Platform, selected: list[str]) -> list[FieldError]:
     """Everything wrong with a selection before compatibility rules are even consulted.
 
     The configurator cannot produce any of these -- ``web/src/lib/build.ts`` repairs the URL it
     reads -- but a hand-rolled POST can, and a build with two cabs and no habitat is not a build.
     """
-    known = {option.slug: option for option in _options_of(platform)}
+    known = {option.slug: option for option in platform.options}
     errors: list[FieldError] = []
 
     unknown = [slug for slug in selected if slug not in known]
@@ -168,13 +162,13 @@ def _structural_errors(platform: Platform, selected: list[str]) -> list[FieldErr
     return errors
 
 
-def _rule_errors(session: Session, platform: Platform, selected: list[str]) -> list[FieldError]:
-    options = _options_of(platform)
-    name_of = {option.slug: option.name for option in options}
-    ruleable = RuleablePlatform(slug=platform.slug, rules=_rules_of(session, options))
+def _rule_errors(platform: Platform, selected: list[str]) -> list[FieldError]:
+    """The customer-facing prose for a broken combination. The check itself is ``catalog``'s
+    ``validate_selection`` over the rules the repository already loaded onto the platform."""
+    name_of = {option.slug: option.name for option in platform.options}
 
     errors: list[FieldError] = []
-    for violation in validate_selection(ruleable, selected):
+    for violation in validate_selection(platform, selected):
         subject = name_of.get(violation.option, violation.option)
         if violation.kind == "requires":
             needs = name_of.get(violation.needs, violation.needs)
@@ -217,12 +211,13 @@ def create_quote(
     background: BackgroundTasks,
     session: SessionDep,
     settings: SettingsDep,
+    platforms: PlatformsDep,
 ) -> QuoteOut | JSONResponse:
     rejection = _guard(request, payload, settings)
     if rejection is not None:
         return rejection
 
-    platform = _platform_by_slug(session, payload.platform_slug)
+    platform = platforms.by_slug(payload.platform_slug)
     if platform is None:
         return error_response(
             404,
@@ -235,22 +230,12 @@ def create_quote(
     if not errors:
         # Compatibility rules are only meaningful once every slug is real; reporting both at
         # once would explain a conflict between an option and one that does not exist.
-        errors = _rule_errors(session, platform, payload.option_slugs)
+        errors = _rule_errors(platform, payload.option_slugs)
     if errors:
         return error_response(422, "invalid_selection", "This build needs a change.", errors)
 
-    options = {option.slug: option for option in _options_of(platform)}
-    breakdown = price_build(
-        PriceablePlatform(
-            slug=platform.slug,
-            base_price_cents=platform.base_price_cents,
-            options=[
-                PriceableOption(slug=option.slug, price_delta_cents=option.price_delta_cents)
-                for option in options.values()
-            ],
-        ),
-        payload.option_slugs,
-    )
+    options = {option.slug: option for option in platform.options}
+    breakdown = price_build(platform, payload.option_slugs)
 
     group_of = {
         option.slug: group.name for group in platform.option_groups for option in group.options
@@ -298,6 +283,7 @@ def create_enquiry(
     background: BackgroundTasks,
     session: SessionDep,
     settings: SettingsDep,
+    platforms: PlatformsDep,
 ) -> QuoteOut | JSONResponse:
     """The /contact form. Same storage, same mail, same spam controls -- there is just no build
     to price, so sales reads one list rather than two."""
@@ -307,7 +293,7 @@ def create_enquiry(
 
     platform = None
     if payload.platform_slug:
-        platform = _platform_by_slug(session, payload.platform_slug)
+        platform = platforms.by_slug(payload.platform_slug)
         if platform is None:
             return error_response(
                 404,

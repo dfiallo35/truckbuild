@@ -22,3 +22,14 @@ class AssetKind(StrEnum):
     gallery = "gallery"
     thumbnail = "thumbnail"
     layer = "layer"
+
+
+class CatalogUseCaseEnum(StrEnum):
+    """The catalog's own use case, beyond the CRUD set ``core``'s ``UseCaseEnum`` names.
+
+    Keyed into the same ``BaseService.use_cases`` dictionary: ``StrEnum`` members hash as their
+    value, so the two enums coexist there without colliding, and a service still keys off a name
+    CI can see rather than off a bare string.
+    """
+
+    revalidate = "revalidate"

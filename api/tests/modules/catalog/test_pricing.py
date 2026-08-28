@@ -1,23 +1,64 @@
 """price_build is exercised against the shared fixtures/pricing-cases.json so the Python and
-future TypeScript mirrors cannot silently drift. See .claude/skills/pricing-mirror."""
+TypeScript mirrors cannot silently drift. See .claude/skills/pricing-mirror.
+
+Since Stage 10 it takes the catalog's own ``Platform`` -- built here straight from the seed YAML,
+with no database anywhere near it, which is what "the domain imports no ORM" buys.
+"""
 
 import pytest
 
-from app.modules.catalog.domain.pricing import PriceableOption, PriceablePlatform, price_build
+from app.modules.catalog.domain.models import Option, OptionGroup, Platform
+from app.modules.catalog.domain.pricing import price_build
 from tests.conftest import platform_by_slug
 
 
-def _pricing_platform(catalog_yaml: dict, slug: str) -> PriceablePlatform:
+def _platform(catalog_yaml: dict, slug: str) -> Platform:
     platform = platform_by_slug(catalog_yaml, slug)
-    options = [
-        PriceableOption(slug=option["slug"], price_delta_cents=option["price_delta_cents"])
-        for group in platform["option_groups"]
-        for option in group["options"]
-    ]
-    return PriceablePlatform(
+    return Platform(
         slug=platform["slug"],
+        name=platform["name"],
+        purpose=platform["purpose"],
+        chassis_basis=platform["chassis_basis"],
         base_price_cents=platform["base_price_cents"],
-        options=options,
+        option_groups=[
+            OptionGroup(
+                slug=group["slug"],
+                name=group["name"],
+                selection_mode=group["selection_mode"],
+                required=group["required"],
+                display_style=group["display_style"],
+                options=[
+                    Option(
+                        slug=option["slug"],
+                        name=option["name"],
+                        price_delta_cents=option["price_delta_cents"],
+                    )
+                    for option in group["options"]
+                ],
+            )
+            for group in platform["option_groups"]
+        ],
+    )
+
+
+def _priceable(slug: str, base_price_cents: int, options: list[Option]) -> Platform:
+    """A one-group platform, for the cases that are about the arithmetic rather than the
+    catalog."""
+    return Platform(
+        slug=slug,
+        name=slug,
+        purpose="test",
+        chassis_basis="test",
+        base_price_cents=base_price_cents,
+        option_groups=[
+            OptionGroup(
+                slug="g",
+                name="Group",
+                selection_mode="multi",
+                display_style="card",
+                options=options,
+            )
+        ],
     )
 
 
@@ -29,25 +70,25 @@ def test_pricing_fixture_cases(catalog_yaml: dict, pricing_cases: list[dict]) ->
     cases = _priceable_cases(pricing_cases)
     assert cases, "expected at least one priceable fixture case"
     for case in cases:
-        platform = _pricing_platform(catalog_yaml, case["platform"])
+        platform = _platform(catalog_yaml, case["platform"])
         breakdown = price_build(platform, case["selected"])
         assert breakdown.total_cents == case["expected_total_cents"], case["name"]
 
 
 def test_price_build_base_price_with_no_options() -> None:
-    platform = PriceablePlatform(slug="p", base_price_cents=100_00, options=[])
+    platform = _priceable("p", 100_00, [])
     breakdown = price_build(platform, [])
     assert breakdown.total_cents == 100_00
     assert breakdown.option_deltas == {}
 
 
 def test_price_build_sums_selected_option_deltas() -> None:
-    platform = PriceablePlatform(
-        slug="p",
-        base_price_cents=100_00,
-        options=[
-            PriceableOption(slug="a", price_delta_cents=10_00),
-            PriceableOption(slug="b", price_delta_cents=20_00),
+    platform = _priceable(
+        "p",
+        100_00,
+        [
+            Option(slug="a", name="A", price_delta_cents=10_00),
+            Option(slug="b", name="B", price_delta_cents=20_00),
         ],
     )
     breakdown = price_build(platform, ["a", "b"])
@@ -56,12 +97,12 @@ def test_price_build_sums_selected_option_deltas() -> None:
 
 
 def test_price_build_ignores_unselected_options() -> None:
-    platform = PriceablePlatform(
-        slug="p",
-        base_price_cents=100_00,
-        options=[
-            PriceableOption(slug="a", price_delta_cents=10_00),
-            PriceableOption(slug="b", price_delta_cents=20_00),
+    platform = _priceable(
+        "p",
+        100_00,
+        [
+            Option(slug="a", name="A", price_delta_cents=10_00),
+            Option(slug="b", name="B", price_delta_cents=20_00),
         ],
     )
     breakdown = price_build(platform, ["a"])
@@ -70,6 +111,6 @@ def test_price_build_ignores_unselected_options() -> None:
 
 
 def test_price_build_rejects_unknown_option_slug() -> None:
-    platform = PriceablePlatform(slug="p", base_price_cents=100_00, options=[])
+    platform = _priceable("p", 100_00, [])
     with pytest.raises(ValueError, match="not-a-real-option"):
         price_build(platform, ["not-a-real-option"])

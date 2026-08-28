@@ -1,26 +1,18 @@
-"""Option compatibility rules. Pure: no ``fastapi`` or ``sqlmodel`` imports.
+"""Option compatibility rules. Pure: no ``fastapi``, ``sqlmodel`` or ``sqlalchemy`` imports.
 
 This purity is what lets the function be tested without a database and mirrored in
 ``web/src/lib/rules.ts`` for instant client-side feedback.
+
+Since Stage 10 it takes the catalog's own ``Platform`` and its own ``OptionRule`` rather than the
+``RuleablePlatform`` shim and a second ``OptionRule`` declared here. Both existed only because
+entities used to be ORM rows; ``Platform.rules`` now carries the real thing, keyed by slug on both
+sides of the mirror.
 """
 
-from dataclasses import dataclass, field
-from typing import Literal
+from dataclasses import dataclass
 
-RuleRelation = Literal["requires", "excludes"]
-
-
-@dataclass(frozen=True)
-class OptionRule:
-    subject: str
-    relation: RuleRelation
-    object: str
-
-
-@dataclass(frozen=True)
-class RuleablePlatform:
-    slug: str
-    rules: list[OptionRule] = field(default_factory=list)
+from app.modules.catalog.domain.enums import RuleRelation
+from app.modules.catalog.domain.models import Platform
 
 
 @dataclass(frozen=True)
@@ -31,9 +23,7 @@ class RuleViolation:
     conflicts_with: str | None = None
 
 
-def validate_selection(
-    platform: RuleablePlatform, selected_option_slugs: list[str]
-) -> list[RuleViolation]:
+def validate_selection(platform: Platform, selected_option_slugs: list[str]) -> list[RuleViolation]:
     """Return every rule violated by the selection.
 
     A ``requires`` rule fires when its subject is selected without its object. An ``excludes``
@@ -45,12 +35,16 @@ def validate_selection(
     for rule in platform.rules:
         if rule.subject not in selected:
             continue
-        if rule.relation == "requires" and rule.object not in selected:
+        if rule.relation == RuleRelation.requires and rule.object not in selected:
             violations.append(
-                RuleViolation(kind="requires", option=rule.subject, needs=rule.object)
+                RuleViolation(kind=RuleRelation.requires, option=rule.subject, needs=rule.object)
             )
-        elif rule.relation == "excludes" and rule.object in selected:
+        elif rule.relation == RuleRelation.excludes and rule.object in selected:
             violations.append(
-                RuleViolation(kind="excludes", option=rule.subject, conflicts_with=rule.object)
+                RuleViolation(
+                    kind=RuleRelation.excludes,
+                    option=rule.subject,
+                    conflicts_with=rule.object,
+                )
             )
     return violations

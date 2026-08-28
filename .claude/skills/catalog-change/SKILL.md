@@ -18,18 +18,26 @@ directories — `api/app/modules/catalog/`, one layer at a time:
 api/seed/catalog.yaml                    source content, version controlled
         ↓  app/seed.py                   idempotent upsert by slug
 Postgres                                 runtime source of truth
-        ↓  catalog/domain/entities/      SQLModel tables (+ migration if the shape changed)
-        ↓  catalog/presentation/schemas.py   Pydantic response shape
-        ↓  catalog/presentation/router.py    GET /v1/catalog, GET /v1/platforms/{slug}
+        ↓  catalog/infrastructure/postgres/tables.py    SQLModel tables (+ migration if shape changed)
+        ↓  catalog/infrastructure/postgres/mappers.py   table → domain entity
+        ↓  catalog/domain/models.py                     the pure entity
+        ↓  catalog/application/mappers.py               domain → DTO
+        ↓  catalog/application/dtos.py                  the response shape
+        ↓  catalog/presentation/catalog_api.py          GET /v1/catalog, GET /v1/platforms/{slug}
 web/src/lib/api.ts                       Zod parse at the boundary
         ↓  'use cache' + cacheTag('catalog') / cacheTag('platform-<slug>')
-        ↓  app/core/revalidate.py → POST /api/revalidate → revalidateTag
+        ↓  catalog/infrastructure/webhook/revalidate.py → POST /api/revalidate → revalidateTag
 rendered page
 ```
 
-Everything from `entities/` to `router.py` lives under one directory, so the API-side steps are
-siblings now. Two things still sit outside it, and both are outside on purpose: `app/seed.py` is the
-composition root's CLI, and `app/core/revalidate.py` is shared with `admin`.
+Since stage 10 a new field crosses **two mappers, not none**: the table → domain one in
+`infrastructure/postgres/mappers.py` and the domain → DTO one in `application/mappers.py`. Missing
+either is the new common half-finish — the column exists, the entity carries it, and the response
+does not.
+
+Everything above lives under one directory. `app/seed.py` sits outside it on purpose: it is the
+composition root's CLI, and it writes through the tables directly because the catalog is loaded
+from YAML rather than over HTTP.
 
 ## Locating the chain
 
@@ -63,16 +71,27 @@ component renders `undefined` with no error.
 
 1. **`api/seed/catalog.yaml`** — the content lives here, not in a migration and not typed into psql.
    Committing it is what keeps catalog content reviewable in diffs.
-2. **`api/app/modules/catalog/domain/entities/`** — shape changes only. Slugs carry unique
-   constraints. A new entity file must also be imported by that package's `__init__.py`, or Alembic
-   never sees the table; `tests/test_entity_registry.py` fails if you forget.
+2. **`api/app/modules/catalog/infrastructure/postgres/tables.py`** — shape changes only. Slugs
+   carry unique constraints, and `__tablename__` is pinned on every table (SQLModel would otherwise
+   derive it from the class name, and renaming a class renames a table). A new table must be reached
+   by `alembic/env.py`'s import, or autogenerate never sees it; `tests/test_entity_registry.py`
+   fails if you forget.
+
+   Then **`domain/models.py`** if the field is part of what a platform *means*, and
+   **`infrastructure/postgres/mappers.py`** to carry it across.
 3. **Alembic migration** — shape changes only. Generate it, then *read it* before committing; see the
    `alembic-migration` skill for why autogenerate output is not trustworthy unreviewed.
 4. **`api/app/seed.py`** — upserts by slug so re-seeding is always safe. If you added a field, the
    upsert has to carry it, or re-seeding will quietly leave existing rows on the old value.
-5. **`api/app/modules/catalog/presentation/`** — `schemas.py` then `router.py`. The nested
-   platform → groups → options → rules shape goes out in one round trip. The catalog is small;
-   splitting it costs more than it saves.
+5. **`api/app/modules/catalog/application/`** — `dtos.py` for the response shape, then
+   `mappers.py` to fill it from the entity. The nested platform → groups → options → rules shape
+   goes out in one round trip; the catalog is small, and splitting it costs more than it saves.
+   `presentation/` needs no change for a new field — it only does ETags and the service call.
+
+   If the new data needs another *query*, it belongs in
+   `infrastructure/postgres/repositories.py`, added to the fixed set of statements
+   `_rows_for` already issues rather than as a lookup per platform.
+   `tests/modules/catalog/test_catalog_queries.py` fails if the count moves.
 6. **`web/src/lib/api.ts`** — extend the Zod schema. Parsing rather than casting at this boundary is
    what turns a backend shape change into a clear named-field error instead of a runtime `undefined`
    several components deep.

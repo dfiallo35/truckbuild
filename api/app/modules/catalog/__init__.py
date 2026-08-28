@@ -7,6 +7,6 @@ this module's own adapters and are off limits from outside -- see
 docs/stages/08-modules-and-layers.md.
 """
 
-from app.modules.catalog.presentation.router import router
+from app.modules.catalog.presentation.routes import router
 
 __all__ = ["router"]

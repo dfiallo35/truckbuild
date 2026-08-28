@@ -1,5 +1,9 @@
 """Cache revalidation: tells the web app to drop the cache tags a catalog change touched.
 
+The one adapter behind ``ICacheInvalidator``. It lives in ``catalog`` rather than in ``core``
+because the tags it carries name platforms and the catalog, which is one module's vocabulary --
+``core`` holds what more than one module needs or what names no module at all.
+
 Marketing pages render from ``use cache`` entries tagged ``catalog`` and ``platform-<slug>``
 rather than from a live call to this API -- that is what keeps them prerendered and keeps a slow
 API off the critical path (see docs/decisions.md). Those entries outlive a catalog edit by hours
@@ -17,40 +21,16 @@ Sync rather than async like the mailer, because the caller that matters is ``pyt
 
 import logging
 from collections.abc import Iterable
-from dataclasses import dataclass
 
 import httpx
 
 from app.core.config import Settings
+from app.modules.catalog.domain.interfaces import ICacheInvalidator, RevalidateResult
 
 logger = logging.getLogger(__name__)
 
 REVALIDATE_PATH = "/api/revalidate"
 TIMEOUT_SECONDS = 10.0
-
-CATALOG_TAG = "catalog"
-
-
-def platform_tag(slug: str) -> str:
-    return f"platform-{slug}"
-
-
-def tags_for_platforms(slugs: Iterable[str]) -> list[str]:
-    """Both tiers, because the two are not interchangeable.
-
-    ``platform-<slug>`` covers that platform's detail page and configurator; ``catalog`` covers
-    everything that lists or spans platforms -- home, /builds, the purpose pages, the sitemap. A
-    repriced option changes both a detail page and the "from $X" on a listing, so a change to one
-    platform still has to take ``catalog`` with it.
-    """
-    return [CATALOG_TAG, *sorted({platform_tag(slug) for slug in slugs})]
-
-
-@dataclass(frozen=True)
-class RevalidateResult:
-    ok: bool
-    tags: tuple[str, ...]
-    detail: str
 
 
 def revalidate(tags: Iterable[str], settings: Settings) -> RevalidateResult:
@@ -84,3 +64,18 @@ def revalidate(tags: Iterable[str], settings: Settings) -> RevalidateResult:
 
     logger.info("revalidated cache tags: %s", ", ".join(tags))
     return RevalidateResult(ok=True, tags=tags, detail=f"{url} accepted {len(tags)} tag(s)")
+
+
+class WebhookCacheInvalidator(ICacheInvalidator):
+    """``ICacheInvalidator`` over the function above.
+
+    The port is what ``RevalidateCatalogUseCase`` and ``admin`` depend on; this is the one thing
+    that knows the cache is a Next.js app reached over HTTP with a shared secret. Swapping it for
+    a CDN purge is a new class here and nothing else.
+    """
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    def invalidate(self, tags: Iterable[str]) -> RevalidateResult:
+        return revalidate(tags, self.settings)
