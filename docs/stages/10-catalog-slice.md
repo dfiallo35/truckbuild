@@ -1,6 +1,6 @@
 # Stage 10 — `catalog` becomes a slice
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-28.
 
 **Goal:** the `catalog` module has all four layers filled in and the shims disappear. Pure pydantic
 entities in `domain/`, an `IPlatformRepository` it owns, SQLModel tables and a mapper in
@@ -39,12 +39,18 @@ app/modules/catalog/
 │   │   └── repositories.py  PlatformRepositoryPostgres
 │   └── webhook/
 │       └── revalidate.py    ← core/revalidate.py, now implementing ICacheInvalidator
-└── presentation/
-    ├── catalog_api.py       ← router.py, minus every query and every mapping
-    ├── filters.py           PlatformFilter (query params) with .to_domain()
-    ├── dependencies.py      Depends(get_session) → repository → service
-    └── routes.py            the module's router, included by main.py
+├── presentation/
+│   ├── catalog_api.py       ← router.py, minus every query and every mapping
+│   ├── filters.py           PlatformFilter (query params) with .to_domain()
+│   └── routes.py            the module's router, included by main.py
+└── dependencies.py          Depends(get_session) → repository → service
 ```
+
+`dependencies.py` ended up beside the four layers rather than inside `presentation/`, and the
+ports it fills are declared by `presentation` and bound in `app/main.py`. See
+[Notes from the build](#notes-from-the-build) — the short version is that no legal import path
+exists from a router to an adapter, and the alternative was an `ignore_imports` entry that Stage 12
+forbids.
 
 ## The two halves of every entity
 
@@ -185,3 +191,61 @@ cd ../web && pnpm test && pnpm build      # must still print "- Cache Components
 `app/modules/catalog/domain/` imports no ORM and `presentation/` names no query, `GET /v1/catalog`
 issues a constant number of statements regardless of how many platforms are seeded, both golden
 diffs are empty, and `fixtures/pricing-cases.json` is unchanged.
+
+
+## Notes from the build
+
+**A router may not name an adapter, and that leaves no legal import path — so `main.py` binds the
+ports.** Three separate rules collide here: `presentation` and `infrastructure` are sibling layers
+that cannot see each other, another module may see only your `application` and `domain`, and
+import-linter follows *chains*, not just direct imports. Between them there is no way for a
+handler to reach a Postgres repository, and `quotes` had to stop writing `select(Platform)` the
+moment `Platform` became a pure entity.
+
+The resolution is uniform across all three modules: **each `presentation` declares what it needs
+as a dependency that raises `NotImplementedError`, and `app/main.py` binds it** through
+`app.dependency_overrides`. `PORT_BINDINGS` in that file is the whole cross-layer and cross-module
+wiring of the application, readable in one screen. `tests/test_composition_root.py` discovers the
+declared ports from the source and fails if one is left unbound, because the symptom otherwise is
+a 500 on exactly one endpoint.
+
+The alternative was an `ignore_imports` entry per crossing, which is what the plan implicitly
+assumed — but Stage 12 requires that list to be empty and neither Stage 11 nor 12 was scheduled to
+remove them. **No `ignore_imports` was added this stage;** the list still holds only the three
+Stage 11 and 12 inherited.
+
+**A module's `dependencies.py` sits beside the four layers, not inside `presentation`.** Same
+reason `core/config.py` sits beside the kernel's: it is the one file that has to see an adapter
+and an inner layer at once, and a file that is the exception to a rule does not belong inside the
+thing the rule is about. `exhaustive = false` on the layers contract is what leaves room for it.
+
+**`Presentation forbids persistence` is declared `allow_indirect_imports = true`.** The rule is
+"no file under `presentation/` names a persistence type" — which is what the checkpoint's `grep`
+checks. Indirectly every router reaches Postgres; that is what an endpoint is for. `Domain forbids
+persistence` is left as a full chain check, because a domain really must not reach storage even
+transitively.
+
+**FastAPI keeps an included router nested, so `scope["route"].path` is the path of the router that
+*owns* the route.** Decorating the handlers on a prefix-less inner router and including it under
+`APIRouter(prefix="/v1")` served them at the right URL but logged them as `/platforms/{slug}` —
+caught by `tests/core/test_telemetry.py`, which exists for exactly this. `routes.py` therefore
+registers the handlers on the prefixed router with `add_api_route` rather than nesting.
+
+**`list` is a method on `IBaseRepository`, so it shadows the builtin inside the body of any class
+implementing it.** `def slugs(self) -> list[str]` written after it fails at class creation with
+`TypeError: 'function' object is not subscriptable`. `from __future__ import annotations` is the
+fix that does not rename the port; the trap is now named in `IPlatformRepository`'s docstring.
+
+**Two deliberate deviations from the plan above.**
+
+- `IPlatformRepository` has `by_slug` and `slugs` but no `all()`. "Every platform, fully loaded"
+  is `list(PlatformFilter())`, which is inherited and already means exactly that; a third method
+  would have been a second name for one query.
+- The tags vocabulary (`CATALOG_TAG`, `platform_tag`, `tags_for_platforms`) went to
+  `domain/cache_tags.py`, not into the webhook adapter. `RevalidateCatalogUseCase` needs it for
+  the "no tags named" default, and `application` may not import `infrastructure`.
+
+**The 404 body for `GET /v1/platforms/{slug}` changed `code` from `not_found` to
+`unknown_platform`**, which is what `POST /v1/quotes` already answered with for the same cause.
+The golden files cover 200s only, and `web/src/lib/api.ts` switches on the status rather than the
+code, so nothing downstream reads it — but it is a wire change, and this is the record of it.

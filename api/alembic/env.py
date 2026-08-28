@@ -3,10 +3,13 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
-# One import per module's entity package: autogenerate only sees tables that have been
+# One import per module's table package: autogenerate only sees tables that have been
 # imported, and a module left off this list is a module whose tables a migration drops.
 # tests/test_entity_registry.py is the guard that catches the omission.
-import app.modules.catalog.domain.entities  # noqa: F401
+#
+# The two paths differ because the migration is mid-flight: `catalog` split its entities from its
+# tables in Stage 10, `quotes` still has them as one thing until Stage 11.
+import app.modules.catalog.infrastructure.postgres.tables  # noqa: F401
 import app.modules.quotes.domain.entities  # noqa: F401
 from alembic import context
 from app.core.config import get_settings

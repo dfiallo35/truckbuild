@@ -12,7 +12,12 @@ import httpx
 import pytest
 
 from app.core.config import Settings
-from app.core.revalidate import revalidate, tags_for_platforms
+from app.modules.catalog.domain.cache_tags import tags_for_platforms
+from app.modules.catalog.domain.interfaces import RevalidateResult
+from app.modules.catalog.infrastructure.webhook.revalidate import (
+    WebhookCacheInvalidator,
+    revalidate,
+)
 
 
 @pytest.fixture
@@ -96,3 +101,13 @@ def test_a_platform_change_takes_the_catalog_tag_with_it() -> None:
 
 def test_the_same_platform_named_twice_yields_one_tag() -> None:
     assert tags_for_platforms(["ironwood", "ironwood"]) == ["catalog", "platform-ironwood"]
+
+
+def test_the_invalidator_port_is_the_same_call(settings, calls) -> None:
+    """``ICacheInvalidator`` is what the use case and ``admin`` depend on; this is the only
+    implementation, and it must not quietly do something else."""
+    result = WebhookCacheInvalidator(settings).invalidate(["catalog"])
+
+    assert isinstance(result, RevalidateResult)
+    assert result.ok
+    assert calls[0]["json"] == {"tags": ["catalog"]}

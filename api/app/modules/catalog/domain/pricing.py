@@ -1,24 +1,19 @@
-"""Build pricing. Pure: no ``fastapi`` or ``sqlmodel`` imports.
+"""Build pricing. Pure: no ``fastapi``, ``sqlmodel`` or ``sqlalchemy`` imports.
 
 This purity is what lets the function be tested without a database and mirrored in
 ``web/src/lib/pricing.ts`` for instant client-side feedback. The server call (``POST /v1/quotes``)
 is the only one that is authoritative -- see docs/decisions.md.
+
+Since Stage 10 it takes the catalog's own ``Platform`` rather than a ``PriceablePlatform`` shim.
+The shim existed because entities used to *be* ORM rows that this module was forbidden to import;
+with ``domain/models.py`` pure there is nothing left for it to protect. ``Platform.options`` is
+the flattened option list the TypeScript mirror reads under the same name, so the two halves
+still line up field for field -- see .claude/skills/pricing-mirror.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-
-@dataclass(frozen=True)
-class PriceableOption:
-    slug: str
-    price_delta_cents: int
-
-
-@dataclass(frozen=True)
-class PriceablePlatform:
-    slug: str
-    base_price_cents: int
-    options: list[PriceableOption] = field(default_factory=list)
+from app.modules.catalog.domain.models import Platform
 
 
 @dataclass(frozen=True)
@@ -28,7 +23,7 @@ class PriceBreakdown:
     total_cents: int
 
 
-def price_build(platform: PriceablePlatform, selected_option_slugs: list[str]) -> PriceBreakdown:
+def price_build(platform: Platform, selected_option_slugs: list[str]) -> PriceBreakdown:
     """Sum the platform base price and the price delta of every selected option.
 
     Raises ``ValueError`` if a selected slug does not belong to the platform -- a build referencing

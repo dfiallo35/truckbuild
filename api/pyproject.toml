@@ -70,6 +70,9 @@ type = "layers"
 # covered the day it is created rather than the day someone remembers to add it here.
 # Parentheses mark a layer that need not exist: admin owns no entities and no tables, so it
 # carries neither a domain nor an infrastructure -- a module carries only the layers it needs.
+# A module's `dependencies.py` sits beside the four layers rather than inside one, the way
+# `core/config.py` sits beside the kernel's: it is the composition root, the one file that has to
+# see an adapter and an inner layer at once. `exhaustive = false` is what leaves room for it.
 layers = ["presentation | (infrastructure)", "application", "(domain)"]
 containers = ["app.modules.catalog", "app.modules.quotes", "app.modules.admin"]
 exhaustive = false
@@ -88,8 +91,7 @@ name = "Layers within core"
 # every feature builds on cannot itself have a domain that reaches for a web framework, which is
 # what would quietly make every module's domain impure by inheritance.
 # `config.py` is deliberately outside the layers: it is read by every one of them and belongs to
-# none, which is what `exhaustive = false` leaves room for. `revalidate.py` is outside for a
-# different reason -- Stage 10 moves it into the catalog module, where its vocabulary belongs.
+# none, which is what `exhaustive = false` leaves room for.
 type = "layers"
 layers = ["presentation | infrastructure", "application", "domain"]
 containers = ["app.core"]
@@ -155,6 +157,36 @@ source_modules = [
     "app.modules.quotes.domain",
 ]
 forbidden_modules = ["fastapi", "starlette", "httpx"]
+
+[[tool.importlinter.contracts]]
+name = "Domain forbids persistence"
+# The whole migration, restated as a rule CI enforces: an entity is a fact about the business, not
+# a row. This is the line that measures whether the entity split was worth doing -- and it is only
+# true of `catalog` and of the kernel so far. `quotes.domain` still *is* a set of SQLModel tables
+# until Stage 11, and `admin` owns no data at all; the scope widens in Stages 11 and 12 until it
+# reads `app.modules.*.domain`.
+type = "forbidden"
+source_modules = [
+    "app.core.domain",
+    "app.modules.catalog.domain",
+]
+forbidden_modules = ["sqlmodel", "sqlalchemy"]
+
+[[tool.importlinter.contracts]]
+name = "Presentation forbids persistence"
+# A router that composes its own query is a router that has to be read to know what the endpoint
+# costs. With the queries behind a repository, `presentation` is left with what is genuinely about
+# HTTP -- status codes, headers, cache validators. Same widening schedule as the contract above:
+# `quotes` and `admin` still write SQL in their routers until Stages 11 and 12.
+type = "forbidden"
+source_modules = ["app.modules.catalog.presentation"]
+forbidden_modules = ["sqlmodel", "sqlalchemy"]
+# Direct imports only, which is what the rule actually says: no file under `presentation/` names a
+# persistence type. Indirectly every router reaches Postgres -- that is what an endpoint is for --
+# through the module's composition root (`app/modules/catalog/dependencies.py`), which sits
+# outside the four layers precisely because it is allowed to see both sides. The stage checkpoint
+# greps for the same thing.
+allow_indirect_imports = true
 
 [[tool.importlinter.contracts]]
 name = "Pricing mirror purity"

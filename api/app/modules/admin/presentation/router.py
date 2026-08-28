@@ -22,14 +22,14 @@ from sqlmodel import Session, col, select
 
 from app.core.config import Settings, get_settings
 from app.core.infrastructure.postgres.database import get_session
-from app.core.revalidate import revalidate, tags_for_platforms
 from app.modules.admin.presentation.schemas import (
     QuotePage,
     QuoteSummary,
     RevalidateIn,
     RevalidateOut,
 )
-from app.modules.catalog.domain.entities import Platform
+from app.modules.catalog.application.services import CatalogService
+from app.modules.catalog.domain.interfaces import ICacheInvalidator, IPlatformRepository
 from app.modules.quotes.domain.entities import Quote, QuoteLine
 from app.modules.quotes.domain.enums import QuoteKind
 from app.modules.quotes.presentation.schemas import QuoteDetail
@@ -42,6 +42,32 @@ _bearer = HTTPBearer(auto_error=False, description="ADMIN_TOKEN")
 
 SessionDep = Annotated[Session, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+
+# The two catalog ports this module reads and writes cache tags through, bound to catalog's own
+# adapters at the composition root in ``app/main.py``. ``admin`` may name another module's
+# ``domain`` and ``application`` and never its adapters (the facade rule, CLAUDE.md), so it
+# declares what it needs and lets the place that assembles the application supply it.
+def get_platform_repository() -> IPlatformRepository:  # pragma: no cover - bound in app/main.py
+    raise NotImplementedError(
+        "get_platform_repository is bound at the composition root in app/main.py"
+    )
+
+
+def get_cache_invalidator() -> ICacheInvalidator:  # pragma: no cover - bound in app/main.py
+    raise NotImplementedError(
+        "get_cache_invalidator is bound at the composition root in app/main.py"
+    )
+
+
+def get_catalog_service(
+    repository: Annotated[IPlatformRepository, Depends(get_platform_repository)],
+    invalidator: Annotated[ICacheInvalidator, Depends(get_cache_invalidator)],
+) -> CatalogService:
+    return CatalogService(repository=repository, invalidator=invalidator)
+
+
+CatalogDep = Annotated[CatalogService, Depends(get_catalog_service)]
 
 
 def require_admin(
@@ -159,23 +185,17 @@ def get_quote(ref: str, session: SessionDep) -> QuoteDetail:
 
 
 @router.post("/revalidate", response_model=RevalidateOut)
-def trigger_revalidate(
-    payload: RevalidateIn, session: SessionDep, settings: SettingsDep
-) -> RevalidateOut:
+def trigger_revalidate(payload: RevalidateIn, catalog: CatalogDep) -> RevalidateOut:
     """Bust the web app's catalog cache by hand.
 
     ``python -m app.seed`` does this on its own for a catalog it loaded. This exists for the
     edit it cannot see -- a price changed directly in Postgres, a row fixed during an incident --
     where the data is already right and only the cache disagrees. With no tags named it drops
     everything the catalog touches, which is the right default for "I changed something, I am not
-    certain what it reaches".
+    certain what it reaches" -- and choosing that default is ``catalog``'s decision, made in
+    ``RevalidateCatalogUseCase``, not one this router re-derives with a query of its own.
     """
-    tags = payload.tags
-    if tags is None:
-        slugs = session.exec(select(col(Platform.slug))).all()
-        tags = tags_for_platforms(slugs)
-
-    result = revalidate(tags, settings)
+    result = catalog.revalidate(payload.tags)
     if not result.ok:
         # Loudly, and to the operator's face. A revalidation that silently did not happen is a
         # wrong price on a public page that nothing downstream will notice.

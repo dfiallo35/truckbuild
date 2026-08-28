@@ -93,9 +93,10 @@ drives most structural decisions and is documented in `docs/decisions.md`:
 
 `api/app/` is one FastAPI app assembled at one composition root (`main.py`) out of feature modules under
 `app/modules/`, each carrying its own layers over a shared `app/core/`. One process, one database, one
-`SQLModel.metadata` — nothing is deployed independently. Five rules, all checked by
+`SQLModel.metadata` — nothing is deployed independently. Seven rules, all checked by
 `uv run lint-imports` (contracts in `api/pyproject.toml`, rationale in
-`docs/stages/08-modules-and-layers.md` and `docs/stages/09-core-kernel.md`):
+`docs/stages/08-modules-and-layers.md`, `docs/stages/09-core-kernel.md` and
+`docs/stages/10-catalog-slice.md`):
 
 - **Layers, inside every module:** `presentation : infrastructure → application → domain`. The two
   adapters are siblings and neither may import the other; `domain` imports nothing.
@@ -111,11 +112,26 @@ drives most structural decisions and is documented in `docs/decisions.md`:
 - **Facades:** another module sees only your `application` and `domain` — never your `presentation` or
   `infrastructure`. The test is *if this module went behind an HTTP call tomorrow, would this import
   still make sense?*
+- **`domain` names no ORM** (`Domain forbids persistence`). True of `core` and of `catalog`; widened to
+  `quotes` in stage 11. This is the line that measures whether the migration worked.
+- **`presentation` names no ORM** (`Presentation forbids persistence`). Direct imports only — indirectly
+  every router reaches Postgres, which is what an endpoint is for. `catalog` today, the rest by stage 12.
 
 A module carries only the layers it needs (`admin` owns no tables, so it has no `domain` and no
 `infrastructure`). Cross-module foreign keys are fine — the boundary is in the code, not the schema.
 Three imports are pinned as named `ignore_imports` exceptions with the stage that removes each;
 that list should only ever shrink.
+
+**Nothing may import an adapter, so `main.py` binds every port.** Between the sibling-adapter rule,
+the facade rule, and import-linter following whole chains rather than direct imports, there is no
+legal path from a router to a repository. So each `presentation` declares what it needs as a
+dependency that raises `NotImplementedError`, each module's `dependencies.py` builds the concrete
+thing, and `PORT_BINDINGS` in `app/main.py` joins them through `app.dependency_overrides` — the
+application's entire cross-layer and cross-module wiring, in one screen.
+`tests/test_composition_root.py` discovers the declared ports from the source and fails if one is
+left unbound. A module's **`dependencies.py` sits beside its four layers, not inside one**, for the
+same reason `core/config.py` sits beside the kernel's: it is the one file that has to see an
+adapter and an inner layer at once.
 
 **The kernel a module is built out of** lives in `app/core/`, laid out in the same four layers and
 adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/property-management):
@@ -136,13 +152,17 @@ reference repo — FastAPI `Depends` rather than `dependency_injector`, sync rat
 `limit`/`offset` rather than `page`/`size`, SQLModel tables, no i18n — are in
 `docs/stages/09-core-kernel.md`.
 
-**Two more rules arrive with stages 10–13, and are not true yet:**
+**`catalog` is the finished shape; `quotes` and `admin` are not there yet:**
 
-- **A module's `domain/` imports no ORM.** True of `core` since stage 9; every module's entity
-  still *is* a SQLModel table, so `app/modules/*/domain/` imports `sqlmodel` and only `pricing.py`
-  and `rules.py` are held to the stricter rule. The entity split in stages 10–12 widens it. This is
-  the one line that measures whether the migration worked.
-- **A `presentation/` writes no query.** Today all three routers compose their own SQL.
+- `catalog/domain/` is pure pydantic — `Platform`, `OptionGroup`, `Option`, `OptionRule` and `Asset`
+  in `models.py`, with the SQLModel tables and the mapper between them in
+  `infrastructure/postgres/`. `quotes`' entities still *are* SQLModel tables until stage 11.
+- `PlatformRepositoryPostgres.list` reads the whole catalog in a **fixed five statements** whatever
+  it is asked for; a domain `Platform` carries its groups, options, assets and rules as loaded
+  values, so no layer above the repository can trigger a query by reading an attribute.
+  `tests/modules/catalog/test_catalog_queries.py` seeds a fourth platform and asserts the count
+  does not move.
+- `catalog`'s router writes no query. `quotes`' and `admin`'s still do, until stages 11 and 12.
 
 ### Build state
 
@@ -183,9 +203,9 @@ of opening a second one that will conflict.
 The build is split into staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-Stages 0–9 are complete. Stage 8 moved `api/` into the modular-monolith layout described above and
-stage 9 built the `core` kernel every module extends; stages 10–12 move one module at a time onto
-it — `catalog` (10), `quotes` (11), `admin` (12) — then seeding, web and docs (13). Every one of
+Stages 0–10 are complete. Stage 8 moved `api/` into the modular-monolith layout described above,
+stage 9 built the `core` kernel every module extends, and stage 10 moved `catalog` onto it; stages
+11–12 do the same for `quotes` and `admin`, then seeding, web and docs (13). Every one of
 those stages keeps the wire contract byte-identical and diffs against the golden capture in
 `api/tests/golden/` to prove it. The site is deployed at <https://truckbuild.vercel.app>
 with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
@@ -213,7 +233,7 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
 | `pricing-mirror` | Touching pricing arithmetic or compatibility rules on either side of the Python/TypeScript mirror |
 | `catalog-change` | Adding or editing a platform, option, price, or rule — the chain from `catalog.yaml` to a rendered page |
 | `cache-and-revalidation` | Adding a catalog read, changing cache tags, or a catalog edit not reaching the site |
-| `alembic-migration` | Any change under a module's `domain/entities/` |
+| `alembic-migration` | Any change to a module's tables — `catalog/infrastructure/postgres/tables.py`, `quotes/domain/entities/` |
 | `stage-checkpoint` | Verifying or closing out a stage, or running the CI-equivalent sweep |
 | `open-pr` | Opening or inspecting a PR — the last step of any task that produces committed work |
 
