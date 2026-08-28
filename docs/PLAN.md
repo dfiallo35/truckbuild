@@ -41,6 +41,24 @@ async, `limit`/`offset` instead of `page`/`size` — the deviation is named and 
 The single line that measures whether the migration worked: **`app/modules/*/domain/` imports no
 ORM**, checked by an import-linter contract rather than by review.
 
+Stages 14–17 are product work rather than restructuring: they replace the configurator's 2D layered
+image composite with a **real 3D build view**, and introduce the first thing this application stores
+outside Postgres. The split that drives them is that **Postgres holds a reference and Vercel Blob
+holds the bytes** — a `BuildModel` row carries a URL, a content hash and a size, and the file itself
+reaches Blob through `python -m app.assets sync` run by an operator, never through a request.
+
+Two findings shape the whole sequence and are worth knowing before reading any of it:
+
+- **A Vercel function caps request bodies at 4.5 MB**, and GLB models run 5–50 MB. An upload
+  endpoint would pass every local test and fail on the first real model in production, so there
+  isn't one.
+- **The configurator route's client-JS budget is 210 KiB gzipped** and three.js is 130–160 KiB on
+  its own, so the viewer is a lazily imported chunk — and `bundle-budget.mjs` has to learn to
+  measure one, or it ships unmeasured.
+
+The stages are ordered so that each is independently green: 14 is additive to the wire, 15 fills in
+what 14 created, 16 builds the viewer while the 2D composite still exists, and only 17 removes it.
+
 | # | Stage | Status |
 |---|---|---|
 | 0 | [Foundations](stages/00-foundations.md) — repo, scaffolds, Compose, CI | **Complete** |
@@ -57,6 +75,10 @@ ORM**, checked by an import-linter contract rather than by review.
 | 11 | [`quotes` slice](stages/11-quotes-slice.md) — one use case per endpoint, ports for mail and rate limiting | **Complete** |
 | 12 | [`admin` slice](stages/12-admin-slice.md) — filters, its own DTOs, the full contract set | **Complete** |
 | 13 | [Seeding, web & docs](stages/13-seeding-web-docs.md) — closing the migration | **Complete** |
+| 14 | [Build model in the catalog](stages/14-build-model-catalog.md) — `BuildModel`, `OptionModelEffect`, additive | Not started |
+| 15 | [Blob storage & ingest](stages/15-blob-storage-ingest.md) — `IBlobStore`, GLB validation, `app.assets` | Not started |
+| 16 | [The 3D viewer](stages/16-3d-viewer.md) — three.js, lazy chunk, lazy-chunk budgets | Not started |
+| 17 | [Retire the 2D composite](stages/17-retire-2d-composite.md) — the enum migration, the docs | Not started |
 
 ## Repository layout
 
