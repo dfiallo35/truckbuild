@@ -13,23 +13,30 @@
 | Aesthetic | Dark, cinematic, photo-led |
 | API structure | Modular monolith — feature modules, four layers each, over a shared `core` |
 
-### API structure, decided while planning stages 9–13
+### API structure
 
 The layout is adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/property-management),
-which runs the same vertical-slice-over-a-shared-`core` shape across fourteen features. Two choices
-inside it are worth stating before the code exists, because both are reversals of what is on disk
-today:
+which runs the same vertical-slice-over-a-shared-`core` shape across fourteen features. Three
+choices inside it are worth recording, because none is obvious from reading the code cold:
 
 - **Entities are separate from tables.** Pure pydantic in `domain/models.py`, SQLModel in
   `infrastructure/postgres/tables.py`, a mapper in each direction. It costs roughly 150 lines of
-  mapper code and one more place to add a field. It buys a `domain/` that imports no ORM — checked
-  by an import-linter contract, not by review — and lets `price_build` and `validate_selection` take
-  real entities instead of the shim types they take today.
+  mapper code across the two catalog mappers and one more place to add a field. It buys a
+  `domain/` that imports no ORM — enforced by the `Domain forbids persistence` import-linter
+  contract, not by review — and lets `price_build` and `validate_selection` take real entities
+  instead of shim types.
 - **The kernel carries the whole CRUD set.** `BaseUseCase` plus `Create`/`Update`/`Delete`/`List`/
-  `Paginate`/`GetById`/`BatchUpdate`, even though this service will leave three of them unused —
-  the catalog is seeded rather than edited over HTTP, and a lead is never mutated. Carried whole
-  because the set is easier to reason about than an à la carte subset, and marked
-  `# pragma: no cover` where unreached rather than quietly dragging the coverage number down.
+  `Paginate`/`GetById`/`BatchUpdate`, even though this service leaves several of them with no
+  caller — the catalog is seeded rather than edited over HTTP, and a lead is never mutated once
+  submitted. Carried whole because the set is easier to reason about than an à la carte subset,
+  and marked `# pragma: no cover` where unreached rather than quietly dragging the coverage
+  number down.
+- **The seed writes through the repository, not around it.** `IPlatformRepository.
+  upsert_from_catalog` is a bulk, catalog-shaped write — not the generic single-entity `create`/
+  `update` the kernel's CRUD use cases call. `PlatformMapper.to_table` stays the deliberately
+  unimplemented dead end it always was (the catalog has no HTTP write path), so `UpdateUseCase`,
+  `DeleteUseCase` and `BatchUpdateUseCase` still have few or no callers in this service — carried
+  for the same reason as the rest of the CRUD set, not because stage 13 found a use for them.
 
 Deviations from the reference — FastAPI `Depends` rather than `dependency_injector`, sync rather
 than async, `limit`/`offset` rather than `page`/`size`, SQLModel tables rather than plain
