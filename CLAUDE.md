@@ -70,7 +70,14 @@ drives most structural decisions and is documented in `docs/decisions.md`:
 - `api/seed/catalog.yaml` is the versioned source content, loaded idempotently (upsert by slug) by
   `app/seed.py`. Postgres remains the runtime source of truth.
 
-### Boundaries that must hold
+### The rules that must hold
+
+TruckBuild is a **modular monolith** — one process, one database, one deployable, with module
+boundaries drawn where a service boundary would go if it ever needed to split. These rules are
+load-bearing; breaking one does not fail loudly, which is why each is checked by a specific tool
+rather than trusted to review. See `docs/architecture.md`'s "The rules" for the layer, module
+direction, facade, domain-purity, and presentation-purity rules — this list is the two that live
+outside `api/`:
 
 - **`app/modules/catalog/domain/pricing.py` and `.../domain/rules.py` are pure** — no `fastapi`, no
   `sqlmodel` imports. That is what makes them cheap to test and safe to mirror on the client. Write them
@@ -83,8 +90,8 @@ drives most structural decisions and is documented in `docs/decisions.md`:
   total, ignoring any client-supplied price.
 - **The browser never sees the API origin.** `API_BASE_URL` is server-side only and must never be prefixed
   `NEXT_PUBLIC_`; the browser reaches FastAPI only through Server Actions and route handlers.
-- **`web/src/lib/api.ts` parses every backend response with Zod** rather than casting, so a backend shape
-  change surfaces as a named field error instead of a runtime `undefined` inside a component.
+- **Every backend response is parsed with Zod, in `web/src/lib/contract.ts`,** rather than cast, so a
+  backend shape change surfaces as a named field error instead of a runtime `undefined` inside a component.
 - **Every env var is declared in `app/core/config.py`** (pydantic-settings) so a missing value fails at startup.
 - **Slugs are the public identifiers** — they appear in URLs and shared builds. Renaming one is a breaking
   change.
@@ -246,6 +253,7 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
 | `catalog-change` | Adding or editing a platform, option, price, or rule — the chain from `catalog.yaml` to a rendered page |
 | `cache-and-revalidation` | Adding a catalog read, changing cache tags, or a catalog edit not reaching the site |
 | `alembic-migration` | Any change to a module's tables — `catalog/` or `quotes/infrastructure/postgres/tables.py` |
+| `new-module` | Adding a whole new feature module — the twelve files and four wiring points |
 | `stage-checkpoint` | Verifying or closing out a stage, or running the CI-equivalent sweep |
 | `open-pr` | Opening or inspecting a PR — the last step of any task that produces committed work |
 

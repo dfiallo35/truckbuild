@@ -74,8 +74,9 @@ docker compose exec api python -m app.seed    # row counts must not change
 target a different database than you think.
 
 **Seed data does not belong in migrations.** Content lives in `api/seed/catalog.yaml` and is loaded by
-`app/seed.py`, which upserts by slug. Migrations change shape; the seed loader changes content. Mixing
-them makes content unreviewable in diffs and makes migrations unrepeatable.
+`app/seed.py` (a thin CLI over `catalog/application/use_cases.py::SeedCatalogUseCase`), which
+upserts by slug. Migrations change shape; the seed loader changes content. Mixing them makes
+content unreviewable in diffs and makes migrations unrepeatable.
 
 **Migrations run on deploy in production** (Render, in the start command -- see `docs/deploy.md`). A
 migration that needs a manual step is a migration that will fail a deploy at an inconvenient moment.
