@@ -55,7 +55,7 @@ ORM**, checked by an import-linter contract rather than by review.
 | 9 | [The kernel](stages/09-core-kernel.md) — `core` grows its own four layers | **Complete** |
 | 10 | [`catalog` slice](stages/10-catalog-slice.md) — entities split from tables, the N+1 goes | **Complete** |
 | 11 | [`quotes` slice](stages/11-quotes-slice.md) — one use case per endpoint, ports for mail and rate limiting | **Complete** |
-| 12 | [`admin` slice](stages/12-admin-slice.md) — filters, its own DTOs, the full contract set | Not started |
+| 12 | [`admin` slice](stages/12-admin-slice.md) — filters, its own DTOs, the full contract set | **Complete** |
 | 13 | [Seeding, web & docs](stages/13-seeding-web-docs.md) — closing the migration | Not started |
 
 ## Repository layout

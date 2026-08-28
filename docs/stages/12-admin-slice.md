@@ -1,6 +1,6 @@
 # Stage 12 — `admin` becomes a slice, and the filter convention earns its keep
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-28.
 
 **Goal:** `admin` stops reaching into other modules' internals. Its three endpoints call use cases;
 its 64-line query composition becomes a `QuoteFilter` and a repository override; and it renders
@@ -139,3 +139,46 @@ read them back as three pages of one, and assert no `ref` is missing or repeated
 `pyproject.toml` has no `ignore_imports`, the full contract set passes, no module's `presentation/`
 names a persistence type, `admin` imports nothing from another module's `presentation` or
 `infrastructure`, and the admin page in `web/` renders unchanged against the running API.
+
+## Result
+
+All of it, against the local stack:
+
+- `ruff check` and `ruff format --check` clean; **10 contracts kept, 0 broken**, and
+  `grep -n ignore_imports pyproject.toml` finds nothing.
+- `pytest -q` — **152 passed**, of which one is new:
+  `test_the_list_pages_of_one_do_not_drop_or_repeat_a_lead`, which submits three leads and reads
+  them back as pages of one, asserting no `ref` is missing or repeated.
+- `grep -rn "select(\|session\.\|Session" app/modules/*/presentation/` finds nothing, and
+  `grep -rn "from app.modules.(quotes|catalog).(presentation|infrastructure)" app/modules/admin/`
+  finds nothing either.
+- The three admin endpoints were checked by hand against the running dev stack (hot-reloaded, no
+  rebuild needed): `GET /v1/admin/quotes` and `GET /v1/admin/quotes/{ref}` render the same fields
+  as before the split, `GET` with no token still answers 401, and `POST /v1/admin/revalidate`
+  still answers 502 in the same body shape when the web app is unreachable.
+- The full CI-equivalent sweep is green: backend (`ruff`, `lint-imports`, `pytest`) and web
+  (`pnpm lint`, `pnpm exec prettier --check .`, `pnpm build` with `- Cache Components enabled`
+  present in the output) — the last two untouched by this stage, run anyway because a checkpoint
+  that skips them is not a checkpoint.
+- No admin page exists in `web/` yet (the admin UI is stage 13's), so "renders unchanged against
+  the running API" was verified at the wire level instead: the three response bodies are
+  byte-identical in shape to what `quotes`' borrowed `QuoteMapper`/`QuoteDetailOutput` produced.
+
+### What moved
+
+`presentation/router.py` mixed a bearer-token guard, three port declarations, and the query
+composition Stage 11 had already moved out, in 191 lines. It is now four files that each do one
+thing: `presentation/dependencies.py` (the guard, the ports, and the use cases built from them),
+`presentation/filters.py` (`AdminQuoteFilter`, where `MAX_PAGE_SIZE` lives), `presentation/
+admin_api.py` (three handlers, each three lines), and `presentation/routes.py` (registration).
+`application/use_cases.py` holds the three operations the router used to inline: `ListQuotesUseCase`
+and `GetQuoteUseCase` both override `exec` rather than a hook, for the same reason
+`GetPlatformUseCase` does — the output is a module-specific shape (`QuotePageOutput`,
+`QuoteDetailOutput`) rather than core's generic envelope, and only `exec` decides which gets built.
+`RevalidateCatalogUseCase` delegates outright to the one `catalog` already owns, through its
+`CatalogService` facade — `admin` triggers a revalidation, it does not own what "everything the
+catalog touches" means.
+
+`app/modules/admin/domain/` is new and deliberately empty: it exists only so the "Domain forbids
+persistence" and "Domain isolation" contracts can say *every* module's domain rather than naming
+three of four.

@@ -22,13 +22,13 @@ from fastapi import APIRouter
 from app.core.config import get_settings
 from app.core.presentation.app import create_app
 from app.modules.admin import router as admin_router
-from app.modules.admin.presentation.router import (
+from app.modules.admin.presentation.dependencies import (
     get_cache_invalidator as admin_cache_invalidator_port,
 )
-from app.modules.admin.presentation.router import (
+from app.modules.admin.presentation.dependencies import (
     get_platform_repository as admin_platform_repository_port,
 )
-from app.modules.admin.presentation.router import (
+from app.modules.admin.presentation.dependencies import (
     get_quote_repository as admin_quote_repository_port,
 )
 from app.modules.catalog import router as catalog_router

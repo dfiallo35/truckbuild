@@ -41,7 +41,7 @@ def _declared_ports() -> dict[str, list[str]]:
 def test_the_ports_are_where_this_test_thinks_they_are() -> None:
     """A guard on the guard: an empty discovery would make the test below pass vacuously."""
     assert _declared_ports() == {
-        "app.modules.admin.presentation.router": [
+        "app.modules.admin.presentation.dependencies": [
             "get_platform_repository",
             "get_cache_invalidator",
             "get_quote_repository",
