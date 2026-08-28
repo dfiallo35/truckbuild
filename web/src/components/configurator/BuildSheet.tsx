@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useEffect, useRef } from "react";
 
-import type { Platform } from "@/lib/api";
+import type { Platform } from "@/lib/contract";
 import { BUILD_PARAM, encodeSelection } from "@/lib/build";
-import { formatCents, formatDelta, type PriceBreakdown } from "@/lib/pricing";
+import { formatCents, formatDelta } from "@/lib/format";
+import type { PriceBreakdown } from "@/lib/pricing";
 import type { RuleViolation } from "@/lib/rules";
 
 /**

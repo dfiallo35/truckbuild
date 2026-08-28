@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from "next/cache";
 
-import { fetchCatalog, fetchPlatform, type Catalog, type Platform } from "@/lib/api";
+import { fetchCatalog, fetchPlatform } from "@/lib/api";
+import type { Catalog, Platform } from "@/lib/contract";
 
 /**
  * The only place page components should reach for catalog data. Reads are wrapped in `use

@@ -1,4 +1,4 @@
-import type { ApiErrorBody, EnquiryPayload, QuotePayload } from "@/lib/api";
+import type { ApiErrorBody, EnquiryPayload, QuotePayload } from "@/lib/contract";
 
 /**
  * Turning a submitted `<form>` into an API payload, and an API rejection back into something a

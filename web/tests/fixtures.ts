@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { parse as parseYaml } from "yaml";
 
-import type { Platform } from "@/lib/api";
+import type { Platform } from "@/lib/contract";
 import type { PriceablePlatform } from "@/lib/pricing";
 import type { OptionRule, RuleablePlatform } from "@/lib/rules";
 

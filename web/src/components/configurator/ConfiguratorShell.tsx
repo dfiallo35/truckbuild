@@ -8,18 +8,11 @@ import { BuildViewer } from "@/components/configurator/BuildViewer";
 import { OptionPanel } from "@/components/configurator/OptionPanel";
 import { PriceBar } from "@/components/configurator/PriceBar";
 import { StepRail } from "@/components/configurator/StepRail";
-import type { Platform } from "@/lib/api";
-import {
-  BUILD_PARAM,
-  decodeSelection,
-  encodeSelection,
-  optionBySlug,
-  toPriceable,
-  toRuleable,
-  toggleOption,
-} from "@/lib/build";
-import { formatCents, priceBuild } from "@/lib/pricing";
-import { validateSelection } from "@/lib/rules";
+import { BUILD_PARAM, encodeSelection, optionBySlug, toPriceable, toggleOption } from "@/lib/build";
+import { deriveBuildView, selectionFromParams } from "@/lib/buildView";
+import type { Platform } from "@/lib/contract";
+import { formatCents } from "@/lib/format";
+import { priceBuild } from "@/lib/pricing";
 
 /**
  * Build state, and the one place it is written.
@@ -32,9 +25,7 @@ import { validateSelection } from "@/lib/rules";
  */
 export function ConfiguratorShell({ platform }: { platform: Platform }) {
   const searchParams = useSearchParams();
-  const [selected, setSelected] = useState(() =>
-    decodeSelection(platform, searchParams.get(BUILD_PARAM)),
-  );
+  const [selected, setSelected] = useState(() => selectionFromParams(platform, searchParams));
   const [stepIndex, setStepIndex] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [announcement, setAnnouncement] = useState("");
@@ -44,15 +35,11 @@ export function ConfiguratorShell({ platform }: { platform: Platform }) {
 
   const options = useMemo(() => optionBySlug(platform), [platform]);
   const priceable = useMemo(() => toPriceable(platform), [platform]);
-  const ruleable = useMemo(() => toRuleable(platform), [platform]);
 
-  const breakdown = useMemo(
-    () => priceBuild(priceable, selected),
-    // priceBuild throws on a slug the platform does not have; decodeSelection has already
-    // filtered those out, so anything reaching here belongs to this platform.
-    [priceable, selected],
+  const { breakdown, violations } = useMemo(
+    () => deriveBuildView(platform, selected),
+    [platform, selected],
   );
-  const violations = useMemo(() => validateSelection(ruleable, selected), [ruleable, selected]);
 
   const nameOf = useCallback((slug: string) => options.get(slug)?.name ?? slug, [options]);
 
@@ -83,8 +70,7 @@ export function ConfiguratorShell({ platform }: { platform: Platform }) {
   // leaving the page showing a selection the address bar disagrees with.
   useEffect(() => {
     const onPopState = () => {
-      const raw = new URLSearchParams(window.location.search).get(BUILD_PARAM);
-      setSelected(decodeSelection(platform, raw));
+      setSelected(selectionFromParams(platform, new URLSearchParams(window.location.search)));
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);

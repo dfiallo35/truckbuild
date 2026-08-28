@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { formatCents, formatDelta } from "@/lib/pricing";
+import { formatCents, formatDelta } from "@/lib/format";
 
 const FLASH_MS = 1600;
 
