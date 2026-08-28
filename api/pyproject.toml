@@ -143,11 +143,14 @@ forbidden_modules = [
 
 [[tool.importlinter.contracts]]
 name = "Domain isolation"
-# A domain that imports a web framework is a domain that cannot be tested without one.
+# A domain that imports a web framework is a domain that cannot be tested without one. `admin`'s
+# is empty, and stays in the list anyway: this contract checks every module's domain, not three of
+# four.
 type = "forbidden"
 source_modules = [
     "app.modules.catalog.domain",
     "app.modules.quotes.domain",
+    "app.modules.admin.domain",
 ]
 forbidden_modules = ["fastapi", "starlette", "httpx"]
 
@@ -156,12 +159,14 @@ name = "Domain forbids persistence"
 # The whole migration, restated as a rule CI enforces: an entity is a fact about the business, not
 # a row. This is the line that measures whether the entity split was worth doing. True of the
 # kernel and of `catalog` since Stage 10 and of `quotes` since Stage 11; `admin` owns no data at
-# all, so Stage 12 widens this to `app.modules.*.domain` by adding a module with nothing in it.
+# all, so Stage 12 widens this to every module's domain by adding one with nothing in it --
+# `app/modules/admin/domain/` exists only to give this contract something to check.
 type = "forbidden"
 source_modules = [
     "app.core.domain",
     "app.modules.catalog.domain",
     "app.modules.quotes.domain",
+    "app.modules.admin.domain",
 ]
 forbidden_modules = ["sqlmodel", "sqlalchemy"]
 
@@ -169,12 +174,13 @@ forbidden_modules = ["sqlmodel", "sqlalchemy"]
 name = "Presentation forbids persistence"
 # A router that composes its own query is a router that has to be read to know what the endpoint
 # costs. With the queries behind a repository, `presentation` is left with what is genuinely about
-# HTTP -- status codes, headers, cache validators. Same widening schedule as the contract above:
-# `catalog` since Stage 10, `quotes` since Stage 11, `admin` in Stage 12.
+# HTTP -- status codes, headers, cache validators. `catalog` since Stage 10, `quotes` since
+# Stage 11, `admin` since Stage 12 -- every module's presentation, now.
 type = "forbidden"
 source_modules = [
     "app.modules.catalog.presentation",
     "app.modules.quotes.presentation",
+    "app.modules.admin.presentation",
 ]
 forbidden_modules = ["sqlmodel", "sqlalchemy"]
 # Direct imports only, which is what the rule actually says: no file under `presentation/` names a

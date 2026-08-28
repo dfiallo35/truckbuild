@@ -133,6 +133,23 @@ def test_the_list_pages_without_dropping_or_repeating_a_lead() -> None:
     assert not {item["ref"] for item in first["items"]} & {item["ref"] for item in second["items"]}
 
 
+def test_the_list_pages_of_one_do_not_drop_or_repeat_a_lead() -> None:
+    """The ``id`` tiebreak exists for exactly this: three leads can land inside one test with the
+    same ``created_at`` down to the microsecond, and a page boundary that wobbles on that would
+    drop or repeat one."""
+    submitted = {submit()["ref"] for _ in range(3)}
+
+    total = client.get("/v1/admin/quotes?limit=1&offset=0", headers=AUTH).json()["total"]
+    seen = [
+        client.get(f"/v1/admin/quotes?limit=1&offset={offset}", headers=AUTH).json()["items"][0][
+            "ref"
+        ]
+        for offset in range(total)
+    ]
+    assert len(seen) == len(set(seen)), "a page of one repeated a lead"
+    assert submitted <= set(seen)
+
+
 def test_the_list_filters_by_kind() -> None:
     submit()
     response = client.get("/v1/admin/quotes?kind=enquiry", headers=AUTH)
