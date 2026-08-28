@@ -11,11 +11,13 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
+from app.core.config import get_settings
 from app.core.infrastructure.postgres.database import engine
+from app.core.infrastructure.ratelimit import RateLimiter
 from app.main import app
-from app.modules.quotes.domain.entities import Quote
+from app.modules.quotes.dependencies import get_rate_limiter
 from app.modules.quotes.domain.enums import QuoteKind
-from app.modules.quotes.presentation.router import limiter
+from app.modules.quotes.infrastructure.postgres.tables import QuoteTable
 
 client = TestClient(app)
 
@@ -33,10 +35,22 @@ _ips = itertools.count(1)
 
 
 @pytest.fixture(autouse=True)
-def _fresh_limiter() -> None:
-    """The limiter is process-global, so one test's submissions would otherwise count against
-    the next one's."""
-    limiter.reset()
+def _fresh_limiter():
+    """A limiter of this test's own.
+
+    The real one is process-global -- it has to be, or it would count to one and never reach its
+    limit -- so one test's submissions would otherwise count against the next one's. Since Stage
+    11 it is injected rather than imported, so this is a substitution at the composition root
+    rather than a reach into the router's module state.
+    """
+    settings = get_settings()
+    limiter = RateLimiter(
+        limit=settings.quote_rate_limit,
+        window_seconds=settings.quote_rate_limit_window_seconds,
+    )
+    app.dependency_overrides[get_rate_limiter] = lambda: limiter
+    yield
+    app.dependency_overrides.pop(get_rate_limiter, None)
 
 
 @pytest.fixture
@@ -64,9 +78,11 @@ def build_payload(**overrides) -> dict:
     return payload
 
 
-def stored(ref: str) -> Quote:
+def stored(ref: str) -> QuoteTable:
+    """Read the row back through the ORM rather than the API, so the assertions below are about
+    what was written and not about what was echoed."""
     with Session(engine) as session:
-        quote = session.exec(select(Quote).where(Quote.ref == ref)).one()
+        quote = session.exec(select(QuoteTable).where(QuoteTable.ref == ref)).one()
         # Touch the lines inside the session; they are lazy-loaded.
         len(quote.lines)
         return quote
@@ -165,7 +181,7 @@ def test_a_filled_honeypot_is_rejected_and_stores_nothing(ip: str) -> None:
     assert "honeypot" not in response.text.lower()
 
     with Session(engine) as session:
-        assert session.exec(select(Quote).where(Quote.source_ip == ip)).first() is None
+        assert session.exec(select(QuoteTable).where(QuoteTable.source_ip == ip)).first() is None
 
 
 def test_a_submission_faster_than_a_person_is_rejected(ip: str) -> None:
@@ -268,15 +284,12 @@ def test_a_broken_mail_provider_still_leaves_the_lead_saved(ip: str, monkeypatch
     monkeypatch.setattr(mail.httpx, "AsyncClient", BrokenClient)
     monkeypatch.setattr(mail, "TIMEOUT_SECONDS", 0.1)
 
-    settings = app.dependency_overrides
-    from app.core.config import get_settings
-
     broken = get_settings().model_copy(update={"resend_api_key": "re_broken_key"})
-    settings[get_settings] = lambda: broken
+    app.dependency_overrides[get_settings] = lambda: broken
     try:
         response = submit(build_payload(), ip)
     finally:
-        settings.pop(get_settings, None)
+        app.dependency_overrides.pop(get_settings, None)
 
     assert response.status_code == 201
     assert stored(response.json()["ref"]).total_cents == BASE_PRICE_CENTS

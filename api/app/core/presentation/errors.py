@@ -80,7 +80,13 @@ async def base_error_handler(_: Request, exc: BaseError) -> JSONResponse:
     """A domain error, in the same envelope as everything else.
 
     This is what lets ``domain`` and ``application`` raise ``NotFoundError`` instead of importing
-    ``HTTPException``: the status and the machine-readable code ride on the exception, and the
-    decision to express them over HTTP is made here and nowhere else.
+    ``HTTPException``: the status, the machine-readable code and any headers the answer needs
+    (``Retry-After`` on a 429) ride on the exception, and the decision to express them over HTTP
+    is made here and nowhere else.
     """
-    return error_response(status_code=exc.status_code, code=exc.code, message=exc.message)
+    return error_response(
+        status_code=exc.status_code,
+        code=exc.code,
+        message=exc.message,
+        headers=exc.headers,
+    )

@@ -16,7 +16,10 @@ class BaseError(Exception):
 
     ``status_code`` is carried on the exception rather than chosen by the handler so that a use
     case saying "this is a 409" does not have to be re-derived from the exception's type at the
-    edge, where the reason has been lost.
+    edge, where the reason has been lost. ``headers`` is there for the same reason and is
+    otherwise empty: a 429 has to say how long to wait, and how long is the rate limiter's
+    answer -- long out of scope by the time the handler runs. It is a mapping of header names to
+    values, not a web framework type, so raising one still needs no ``fastapi`` import.
     """
 
     status_code: int = 500
@@ -28,8 +31,10 @@ class BaseError(Exception):
         *,
         status_code: int | None = None,
         code: str | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.message = message
+        self.headers = headers
         if status_code is not None:
             self.status_code = status_code
         if code is not None:

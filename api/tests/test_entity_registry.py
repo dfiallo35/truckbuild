@@ -9,11 +9,10 @@ here instead -- at the moment it is made rather than months later in a migration
 Two halves, because there are two ways to lose a table: a module missing from ``env.py``'s
 import list, and a submodule missing from its package's ``__init__``.
 
-The two modules are found in different places while the migration is in flight. ``catalog``
-split its pure entities from its SQLModel tables in Stage 10, so its tables live in
-``infrastructure/postgres/tables.py``; ``quotes`` still has them as one thing under
-``domain/entities/`` until Stage 11. This test follows the tables, which is what it was always
-really checking.
+Since Stage 11 both modules keep their tables in the same place -- ``infrastructure/postgres/``,
+with the entities they store as pure pydantic in ``domain/models.py``. The discovery below still
+looks in both places, because it follows the tables rather than a layout, which is what it was
+always really checking.
 """
 
 import ast
@@ -25,16 +24,13 @@ from tests.conftest import API_ROOT
 
 MODULES_ROOT = API_ROOT / "app" / "modules"
 
+# Discovered by following the tables themselves rather than a list someone has to remember to
+# extend -- and by globbing for the file rather than for the directory that holds it, so a
+# leftover `__pycache__` from the pre-Stage-11 layout cannot make this report a module that no
+# longer exists.
 TABLE_MODULES = sorted(
-    [
-        f"app.modules.{path.parent.parent.name}.domain.entities"
-        for path in MODULES_ROOT.glob("*/domain/entities")
-        if path.is_dir()
-    ]
-    + [
-        f"app.modules.{path.parents[2].name}.infrastructure.postgres.tables"
-        for path in MODULES_ROOT.glob("*/infrastructure/postgres/tables.py")
-    ]
+    f"app.modules.{path.parents[2].name}.infrastructure.postgres.tables"
+    for path in MODULES_ROOT.glob("*/infrastructure/postgres/tables.py")
 )
 
 
@@ -42,7 +38,7 @@ def test_table_modules_are_discoverable() -> None:
     """A guard on the guard: if the layout moves, the two tests below would pass vacuously."""
     assert TABLE_MODULES == [
         "app.modules.catalog.infrastructure.postgres.tables",
-        "app.modules.quotes.domain.entities",
+        "app.modules.quotes.infrastructure.postgres.tables",
     ]
 
 
@@ -114,16 +110,20 @@ def test_every_table_class_is_registered_by_its_module() -> None:
     )
 
 
-def test_the_catalog_tables_keep_the_names_the_first_migration_created() -> None:
-    """``__tablename__`` is pinned on every catalog table because SQLModel derives it from the
-    class name: renaming ``Platform`` to ``PlatformTable`` in Stage 10 would otherwise have
-    renamed five tables, which autogenerate writes as ``drop_table`` + ``create_table``."""
-    from app.modules.catalog.infrastructure.postgres import tables
+def test_every_table_keeps_the_name_the_first_migration_created() -> None:
+    """``__tablename__`` is pinned on every table because SQLModel derives it from the class
+    name: renaming ``Platform`` to ``PlatformTable`` in Stage 10, and ``Quote`` to ``QuoteTable``
+    in Stage 11, would otherwise have renamed seven tables -- which autogenerate writes as
+    ``drop_table`` + ``create_table``, i.e. as deleting every stored lead."""
+    from app.modules.catalog.infrastructure.postgres import tables as catalog_tables
+    from app.modules.quotes.infrastructure.postgres import tables as quote_tables
 
     assert {
-        tables.PlatformTable.__tablename__,
-        tables.OptionGroupTable.__tablename__,
-        tables.OptionTable.__tablename__,
-        tables.OptionRuleTable.__tablename__,
-        tables.AssetTable.__tablename__,
-    } == {"platform", "optiongroup", "option", "optionrule", "asset"}
+        catalog_tables.PlatformTable.__tablename__,
+        catalog_tables.OptionGroupTable.__tablename__,
+        catalog_tables.OptionTable.__tablename__,
+        catalog_tables.OptionRuleTable.__tablename__,
+        catalog_tables.AssetTable.__tablename__,
+        quote_tables.QuoteTable.__tablename__,
+        quote_tables.QuoteLineTable.__tablename__,
+    } == {"platform", "optiongroup", "option", "optionrule", "asset", "quote", "quoteline"}

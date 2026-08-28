@@ -58,6 +58,11 @@ dev = [
 #
 # `include_external_packages` is what lets the two purity contracts below name fastapi, httpx and
 # sqlmodel at all; without it those are unknown modules and the contracts error rather than run.
+#
+# No contract below carries a pinned exception, and none should again. The three the migration
+# inherited each named the stage that removed it, and Stage 11 removed the last of them: two when
+# the mail adapter moved behind a port, the third when `admin` stopped borrowing `quotes`' wire
+# schema.
 [tool.importlinter]
 root_package = "app"
 include_external_packages = true
@@ -76,13 +81,6 @@ type = "layers"
 layers = ["presentation | (infrastructure)", "application", "(domain)"]
 containers = ["app.modules.catalog", "app.modules.quotes", "app.modules.admin"]
 exhaustive = false
-ignore_imports = [
-    # Stage 11 replaces this with the router calling a use case that owns the mail port.
-    "app.modules.quotes.presentation.router -> app.modules.quotes.infrastructure.mail",
-    # Stage 11 moves QuoteDetail off the wire layer, so the mail adapter renders a use-case
-    # result rather than a response schema.
-    "app.modules.quotes.infrastructure.mail -> app.modules.quotes.presentation.schemas",
-]
 
 [[tool.importlinter.contracts]]
 name = "Layers within core"
@@ -142,11 +140,6 @@ forbidden_modules = [
     "app.modules.quotes.presentation",
     "app.modules.quotes.infrastructure",
 ]
-ignore_imports = [
-    # Same QuoteDetail as above: admin renders a stored lead through the quotes module's wire
-    # schema. Stage 12 gives admin its own output DTOs instead.
-    "app.modules.admin.presentation.router -> app.modules.quotes.presentation.schemas",
-]
 
 [[tool.importlinter.contracts]]
 name = "Domain isolation"
@@ -161,14 +154,14 @@ forbidden_modules = ["fastapi", "starlette", "httpx"]
 [[tool.importlinter.contracts]]
 name = "Domain forbids persistence"
 # The whole migration, restated as a rule CI enforces: an entity is a fact about the business, not
-# a row. This is the line that measures whether the entity split was worth doing -- and it is only
-# true of `catalog` and of the kernel so far. `quotes.domain` still *is* a set of SQLModel tables
-# until Stage 11, and `admin` owns no data at all; the scope widens in Stages 11 and 12 until it
-# reads `app.modules.*.domain`.
+# a row. This is the line that measures whether the entity split was worth doing. True of the
+# kernel and of `catalog` since Stage 10 and of `quotes` since Stage 11; `admin` owns no data at
+# all, so Stage 12 widens this to `app.modules.*.domain` by adding a module with nothing in it.
 type = "forbidden"
 source_modules = [
     "app.core.domain",
     "app.modules.catalog.domain",
+    "app.modules.quotes.domain",
 ]
 forbidden_modules = ["sqlmodel", "sqlalchemy"]
 
@@ -177,9 +170,12 @@ name = "Presentation forbids persistence"
 # A router that composes its own query is a router that has to be read to know what the endpoint
 # costs. With the queries behind a repository, `presentation` is left with what is genuinely about
 # HTTP -- status codes, headers, cache validators. Same widening schedule as the contract above:
-# `quotes` and `admin` still write SQL in their routers until Stages 11 and 12.
+# `catalog` since Stage 10, `quotes` since Stage 11, `admin` in Stage 12.
 type = "forbidden"
-source_modules = ["app.modules.catalog.presentation"]
+source_modules = [
+    "app.modules.catalog.presentation",
+    "app.modules.quotes.presentation",
+]
 forbidden_modules = ["sqlmodel", "sqlalchemy"]
 # Direct imports only, which is what the rule actually says: no file under `presentation/` names a
 # persistence type. Indirectly every router reaches Postgres -- that is what an endpoint is for --

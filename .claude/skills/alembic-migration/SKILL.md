@@ -1,6 +1,6 @@
 ---
 name: alembic-migration
-description: Generating, reviewing, and applying Alembic migrations in TruckBuild's api/ service. Use this whenever a SQLModel table changes shape — api/app/modules/catalog/infrastructure/postgres/tables.py or api/app/modules/quotes/domain/entities/ — new table, new column, changed type, new constraint, new enum, new index — and whenever someone asks to add a field, add an entity, or run migrations. Autogenerate produces plausible-looking migrations that are wrong about enums, constraints, and server defaults often enough that reading the output before committing is part of the job rather than an optional extra, so do not treat a generated migration as finished work.
+description: Generating, reviewing, and applying Alembic migrations in TruckBuild's api/ service. Use this whenever a SQLModel table changes shape — api/app/modules/catalog/infrastructure/postgres/tables.py or api/app/modules/quotes/infrastructure/postgres/tables.py — new table, new column, changed type, new constraint, new enum, new index — and whenever someone asks to add a field, add an entity, or run migrations. Autogenerate produces plausible-looking migrations that are wrong about enums, constraints, and server defaults often enough that reading the output before committing is part of the job rather than an optional extra, so do not treat a generated migration as finished work.
 ---
 
 # Alembic migrations
