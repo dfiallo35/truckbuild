@@ -13,8 +13,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.core.config import get_settings
-from app.core.telemetry import REQUEST_ID_HEADER, _scrub
-from app.core.telemetry import install as install_telemetry
+from app.core.presentation.telemetry import REQUEST_ID_HEADER, _scrub
+from app.core.presentation.telemetry import install as install_telemetry
 from app.main import app
 
 client = TestClient(app)

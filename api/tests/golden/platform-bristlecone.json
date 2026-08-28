@@ -1,0 +1,419 @@
+{
+  "base_price_cents": 21450000,
+  "chassis_basis": "Ram 5500 4x4 (regular / crew cab)",
+  "gallery": [
+    {
+      "alt_text": "Bristlecone habitat interior with full galley",
+      "kind": "gallery",
+      "url": "/images/bristlecone/gallery-1.jpg"
+    },
+    {
+      "alt_text": "Bristlecone rear three-quarter view with rooftop tent deployed",
+      "kind": "gallery",
+      "url": "/images/bristlecone/gallery-2.jpg"
+    }
+  ],
+  "hero_image": {
+    "alt_text": "Bristlecone expedition truck parked on a desert ridge at dusk",
+    "kind": "hero",
+    "url": "/images/bristlecone/hero.jpg"
+  },
+  "name": "Bristlecone",
+  "option_groups": [
+    {
+      "display_style": "card",
+      "name": "Cab & Chassis",
+      "options": [
+        {
+          "description": "Two-door cab, maximum habitat footprint.",
+          "layer": null,
+          "name": "Regular Cab",
+          "price_delta_cents": 0,
+          "slug": "cab-regular",
+          "swatch": null
+        },
+        {
+          "description": "Four-door cab with rear bench seating.",
+          "layer": {
+            "alt_text": "Crew cab with a second row of doors",
+            "url": "/images/bristlecone/viewer/cab-crew.png",
+            "z_index": 10
+          },
+          "name": "Crew Cab",
+          "price_delta_cents": 850000,
+          "slug": "cab-crew",
+          "swatch": null
+        }
+      ],
+      "required": true,
+      "selection_mode": "single",
+      "slug": "cab-chassis"
+    },
+    {
+      "display_style": "card",
+      "name": "Habitat Shell",
+      "options": [
+        {
+          "description": "Insulated composite panel shell, standard height.",
+          "layer": null,
+          "name": "Standard Composite Shell",
+          "price_delta_cents": 0,
+          "slug": "shell-standard",
+          "swatch": null
+        },
+        {
+          "description": "Raised roofline for standing headroom throughout.",
+          "layer": {
+            "alt_text": "Raised roof section over the forward habitat",
+            "url": "/images/bristlecone/viewer/shell-extended.png",
+            "z_index": 20
+          },
+          "name": "Extended Composite Shell",
+          "price_delta_cents": 1200000,
+          "slug": "shell-extended",
+          "swatch": null
+        }
+      ],
+      "required": true,
+      "selection_mode": "single",
+      "slug": "habitat-shell"
+    },
+    {
+      "display_style": "card",
+      "name": "Interior Layout",
+      "options": [
+        {
+          "description": "Single-burner galley with under-counter fridge.",
+          "layer": null,
+          "name": "Compact Galley",
+          "price_delta_cents": 0,
+          "slug": "galley-compact",
+          "swatch": null
+        },
+        {
+          "description": "Two-burner galley, full-size fridge, and dry storage.",
+          "layer": null,
+          "name": "Full Galley",
+          "price_delta_cents": 650000,
+          "slug": "galley-full",
+          "swatch": null
+        },
+        {
+          "description": "Fixed bunk with under-bed storage, no galley.",
+          "layer": null,
+          "name": "Bunk Layout",
+          "price_delta_cents": 480000,
+          "slug": "layout-bunk",
+          "swatch": null
+        }
+      ],
+      "required": true,
+      "selection_mode": "single",
+      "slug": "interior-layout"
+    },
+    {
+      "display_style": "toggle",
+      "name": "Power System",
+      "options": [
+        {
+          "description": "300 Ah lithium battery bank with 2000 W inverter.",
+          "layer": null,
+          "name": "300 Ah Lithium Bank",
+          "price_delta_cents": 950000,
+          "slug": "lithium-300ah",
+          "swatch": null
+        },
+        {
+          "description": "600 Ah lithium battery bank with 3000 W inverter.",
+          "layer": null,
+          "name": "600 Ah Lithium Bank",
+          "price_delta_cents": 1850000,
+          "slug": "lithium-600ah",
+          "swatch": null
+        },
+        {
+          "description": "Roof-mounted 200 W solar array.",
+          "layer": {
+            "alt_text": "Single solar panel on the rear roof",
+            "url": "/images/bristlecone/viewer/solar-standard.png",
+            "z_index": 42
+          },
+          "name": "Standard Solar Array (200 W)",
+          "price_delta_cents": 180000,
+          "slug": "solar-standard",
+          "swatch": null
+        },
+        {
+          "description": "Roof-mounted 600 W solar array, covers most of the roofline.",
+          "layer": {
+            "alt_text": "Solar panels covering the rear roof",
+            "url": "/images/bristlecone/viewer/solar-max.png",
+            "z_index": 42
+          },
+          "name": "Maximum Solar Array (600 W)",
+          "price_delta_cents": 420000,
+          "slug": "solar-max",
+          "swatch": null
+        }
+      ],
+      "required": false,
+      "selection_mode": "multi",
+      "slug": "power-system"
+    },
+    {
+      "display_style": "toggle",
+      "name": "Water & Thermal",
+      "options": [
+        {
+          "description": "Upgrades the standard 40 gal tank to 80 gal.",
+          "layer": null,
+          "name": "80 gal Fresh Water Upgrade",
+          "price_delta_cents": 320000,
+          "slug": "water-80gal",
+          "swatch": null
+        },
+        {
+          "description": "Combustion heater independent of the engine.",
+          "layer": null,
+          "name": "Diesel-Fired Cabin Heater",
+          "price_delta_cents": 275000,
+          "slug": "heater-diesel",
+          "swatch": null
+        },
+        {
+          "description": "Low-profile rooftop AC unit.",
+          "layer": {
+            "alt_text": "Low-profile air conditioning unit on the roof",
+            "url": "/images/bristlecone/viewer/ac-rooftop.png",
+            "z_index": 44
+          },
+          "name": "Rooftop Air Conditioning",
+          "price_delta_cents": 410000,
+          "slug": "ac-rooftop",
+          "swatch": null
+        }
+      ],
+      "required": false,
+      "selection_mode": "multi",
+      "slug": "water-thermal"
+    },
+    {
+      "display_style": "card",
+      "name": "Suspension & Tires",
+      "options": [
+        {
+          "description": "Factory suspension with all-terrain tires.",
+          "layer": null,
+          "name": "Standard Suspension, All-Terrain Tires",
+          "price_delta_cents": 0,
+          "slug": "suspension-standard",
+          "swatch": null
+        },
+        {
+          "description": "Long-travel coilover suspension, all-terrain tires.",
+          "layer": {
+            "alt_text": "Oversize all-terrain tires on long-travel suspension",
+            "url": "/images/bristlecone/viewer/suspension-longtravel.png",
+            "z_index": 25
+          },
+          "name": "Long-Travel Suspension, All-Terrain Tires",
+          "price_delta_cents": 680000,
+          "slug": "suspension-longtravel",
+          "swatch": null
+        },
+        {
+          "description": "Long-travel coilover suspension, mud-terrain tires.",
+          "layer": {
+            "alt_text": "Oversize mud-terrain tires on long-travel suspension",
+            "url": "/images/bristlecone/viewer/suspension-longtravel-mt.png",
+            "z_index": 25
+          },
+          "name": "Long-Travel Suspension, Mud-Terrain Tires",
+          "price_delta_cents": 890000,
+          "slug": "suspension-longtravel-mt",
+          "swatch": null
+        }
+      ],
+      "required": true,
+      "selection_mode": "single",
+      "slug": "suspension-tires"
+    },
+    {
+      "display_style": "toggle",
+      "name": "Recovery & Protection",
+      "options": [
+        {
+          "description": "Standard-duty steel front bumper.",
+          "layer": null,
+          "name": "Standard Steel Bumper",
+          "price_delta_cents": 0,
+          "slug": "bumper-standard",
+          "swatch": null
+        },
+        {
+          "description": "Reinforced bumper rated for a winch mount.",
+          "layer": {
+            "alt_text": "Reinforced front bumper with a winch cradle",
+            "url": "/images/bristlecone/viewer/bumper-heavy.png",
+            "z_index": 30
+          },
+          "name": "Heavy-Duty Winch Bumper",
+          "price_delta_cents": 220000,
+          "slug": "bumper-heavy",
+          "swatch": null
+        },
+        {
+          "description": "Electric winch, 12,000 lb capacity. Requires the heavy-duty bumper.",
+          "layer": {
+            "alt_text": "Winch drum mounted in the front bumper",
+            "url": "/images/bristlecone/viewer/winch-12000.png",
+            "z_index": 32
+          },
+          "name": "12,000 lb Winch",
+          "price_delta_cents": 340000,
+          "slug": "winch-12000",
+          "swatch": null
+        },
+        {
+          "description": "Bolt-on rock sliders protecting the rocker panels.",
+          "layer": {
+            "alt_text": "Rock sliders along the rocker panels",
+            "url": "/images/bristlecone/viewer/rock-sliders.png",
+            "z_index": 28
+          },
+          "name": "Rock Sliders",
+          "price_delta_cents": 95000,
+          "slug": "rock-sliders",
+          "swatch": null
+        }
+      ],
+      "required": false,
+      "selection_mode": "multi",
+      "slug": "recovery-protection"
+    },
+    {
+      "display_style": "toggle",
+      "name": "Roof & Storage",
+      "options": [
+        {
+          "description": "Hard-shell rooftop tent, sleeps two. Conflicts with the maximum solar array.",
+          "layer": {
+            "alt_text": "Hard-shell rooftop tent at the rear of the roof",
+            "url": "/images/bristlecone/viewer/rooftop-tent.png",
+            "z_index": 46
+          },
+          "name": "Rooftop Tent",
+          "price_delta_cents": 380000,
+          "slug": "rooftop-tent",
+          "swatch": null
+        },
+        {
+          "description": "Low-profile roof rack for gear.",
+          "layer": {
+            "alt_text": "Low-profile rails running along the rear roof",
+            "url": "/images/bristlecone/viewer/roof-rack-basic.png",
+            "z_index": 40
+          },
+          "name": "Roof Rack",
+          "price_delta_cents": 60000,
+          "slug": "roof-rack-basic",
+          "swatch": null
+        }
+      ],
+      "required": false,
+      "selection_mode": "multi",
+      "slug": "roof-storage"
+    },
+    {
+      "display_style": "swatch",
+      "name": "Exterior Finish",
+      "options": [
+        {
+          "description": "Satin black finish over the composite shell.",
+          "layer": {
+            "alt_text": "Bristlecone body in satin black",
+            "url": "/images/bristlecone/viewer/finish-satin-black.png",
+            "z_index": 5
+          },
+          "name": "Satin Black",
+          "price_delta_cents": 0,
+          "slug": "finish-satin-black",
+          "swatch": {
+            "alt_text": "Satin black paint swatch",
+            "kind": "thumbnail",
+            "url": "/images/bristlecone/swatches/finish-satin-black.png"
+          }
+        },
+        {
+          "description": "Desert tan finish over the composite shell.",
+          "layer": {
+            "alt_text": "Bristlecone body in desert tan",
+            "url": "/images/bristlecone/viewer/finish-desert-tan.png",
+            "z_index": 5
+          },
+          "name": "Desert Tan",
+          "price_delta_cents": 0,
+          "slug": "finish-desert-tan",
+          "swatch": {
+            "alt_text": "Desert tan paint swatch",
+            "kind": "thumbnail",
+            "url": "/images/bristlecone/swatches/finish-desert-tan.png"
+          }
+        },
+        {
+          "description": "Forest green finish over the composite shell.",
+          "layer": {
+            "alt_text": "Bristlecone body in forest green",
+            "url": "/images/bristlecone/viewer/finish-forest-green.png",
+            "z_index": 5
+          },
+          "name": "Forest Green",
+          "price_delta_cents": 0,
+          "slug": "finish-forest-green",
+          "swatch": {
+            "alt_text": "Forest green paint swatch",
+            "kind": "thumbnail",
+            "url": "/images/bristlecone/swatches/finish-forest-green.png"
+          }
+        }
+      ],
+      "required": true,
+      "selection_mode": "single",
+      "slug": "exterior-finish"
+    }
+  ],
+  "purpose": "Expedition / overland habitat",
+  "rules": [
+    {
+      "object": "solar-max",
+      "relation": "excludes",
+      "subject": "rooftop-tent"
+    },
+    {
+      "object": "galley-compact",
+      "relation": "excludes",
+      "subject": "lithium-600ah"
+    },
+    {
+      "object": "bumper-heavy",
+      "relation": "requires",
+      "subject": "winch-12000"
+    }
+  ],
+  "slug": "bristlecone",
+  "spec_highlights": [
+    "4x4 drivetrain, 12,000 lb GVWR",
+    "Dual diesel fuel tanks, 800 mi range",
+    "Insulated composite habitat shell"
+  ],
+  "standard_equipment": [
+    "LED perimeter lighting",
+    "Underbody skid plates",
+    "40 gal fresh water tank"
+  ],
+  "viewer_base": {
+    "alt_text": "Bristlecone in standard configuration, side profile",
+    "url": "/images/bristlecone/viewer/base.png",
+    "z_index": 0
+  }
+}

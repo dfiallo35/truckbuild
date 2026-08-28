@@ -1,12 +1,13 @@
 # Stage 9 — The kernel: `core` grows its own four layers
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-28.
 
 **Goal:** `app/core/` stops being a drawer of six flat modules and becomes the shared kernel every
 feature module extends — `BaseEntity`, `IBaseRepository`, `BaseFilter`, `BaseUseCase` and its CRUD
 subclasses, `BaseService`, `BaseTable`, `BaseRepositoryPostgres` — laid out in the same four layers
-the modules use. Nothing under `app/modules/` changes, so the wire contract is unchanged by
-construction.
+the modules use. No *behaviour* under `app/modules/` changes, so the wire contract is unchanged
+by construction — the one thing that does change there is that every entity inherits `BaseTable`,
+which is a schema change and not a wire one. See **Notes from the build**.
 
 Stage 8 gave every module four directories. Two of them are still empty. That is not an oversight
 being corrected here — it is that there was nothing for a module's `application/` layer to be *made
@@ -50,7 +51,7 @@ api/app/
     │   └── ratelimit.py             # ← core/ratelimit.py, now behind IRateLimiter
     └── presentation/
         ├── app.py                   # create_app — CORS, handlers, telemetry, routers
-        ├── errors.py                # ← core/errors.py, handler half only
+        ├── errors.py                # ← core/errors.py, handlers + error_response
         ├── filters.py               # BaseFilter (query-param model) with .to_domain()
         └── telemetry.py             # ← core/telemetry.py — it installs middleware, so it is presentation
 ```
@@ -173,13 +174,17 @@ uv run pytest -q
 uv run uvicorn app.main:app --port 8000 &  # the ASGI path must not have moved
 
 curl -s localhost:8000/healthz
-curl -s localhost:8000/v1/catalog | jq -S . > /tmp/catalog.before.json
-curl -s localhost:8000/v1/platforms/bristlecone | jq -S . > /tmp/platform.before.json
-curl -s localhost:8000/v1/catalog | jq -S . | diff /tmp/catalog.before.json -
+curl -s localhost:8000/v1/catalog               | jq -S . > tests/golden/catalog.json
+curl -s localhost:8000/v1/platforms/bristlecone | jq -S . > tests/golden/platform-bristlecone.json
+
+# ...then the restructure, and the same two requests again:
+curl -s localhost:8000/v1/catalog               | jq -S . | diff tests/golden/catalog.json -
+curl -s localhost:8000/v1/platforms/bristlecone | jq -S . | diff tests/golden/platform-bristlecone.json -
 ```
 
-Capture those two golden files here and keep them: Stages 10–13 diff against them, and this is the
-last stage in which the response bodies are produced by code nobody has restructured.
+Those two golden files are committed, not left in `/tmp`: Stages 10–13 diff against them, and this
+is the last stage in which the response bodies are produced by code nobody has restructured. See
+`api/tests/golden/README.md`.
 
 New unit tests, none of which need a running module:
 
@@ -189,9 +194,70 @@ New unit tests, none of which need a running module:
 - `tests/core/test_repositories.py` — `filter()` applied to a throwaway table declared in the test
   module: each common filter narrows, an unknown `order_by` raises.
 
+## Notes from the build
+
+Where the plan above met the code and the code won.
+
+- **`error_response` is in `presentation/errors.py`, not in `dtos.py`.** Step 1 groups it with the
+  error body, but the Done-when forbids `fastapi` inside `application` and `error_response`
+  returns a `JSONResponse`. The models — `FieldError` and `ErrorBody` (the old `ErrorOut`, renamed
+  to the name the tree above already used) — are in `dtos.py` where a use case can build one; the
+  function that turns one into an HTTP response is one layer out. The envelope on the wire is
+  byte-identical either way.
+
+- **The entities did change, and had to.** Step 10 says every table gains `created_at` and
+  `updated_at` because `BaseTable` mandates them — which is only true if the tables actually
+  inherit `BaseTable`. Left as they were, `SQLModel.metadata` would not have matched the database
+  the migration produced and the next autogenerate would have offered to drop the new columns. So
+  all seven table classes under `app/modules/*/domain/entities/` now inherit it and dropped their
+  own `id`. Nothing on the wire moved: the routers name every field they return, so an added
+  column is invisible to `PlatformOut` and to `QuoteDetail`. Both golden diffs are empty, which is
+  what that claim rests on.
+
+- **`Quote.created_at` is redeclared rather than inherited.** Same type, same server default, but
+  `index=True` — the admin lead list orders on `ix_quote_created_at`, and inheriting the base
+  column would have dropped it. The migration touches that column only with `SET DEFAULT`.
+
+- **Autogenerate wrote an import it did not add.** The generated revision referenced
+  `app.core.infrastructure.postgres.tables.UTCDateTime(timezone=True)` by its full Python path
+  with no `import app` anywhere in the file — `alembic upgrade head` would have died on a
+  `NameError`. Rewritten as `sa.DateTime(timezone=True)`, which renders identical DDL and keeps
+  the revision from importing application code that Stages 10–12 are about to move. This is the
+  fourth distinct thing the **alembic-migration** skill's "read the generated file" rule has
+  caught, and the first that would have failed at apply time rather than in production.
+
+- **`NotValidOrderBy` is `NotValidOrderByError`**, and `UseCaseEnum` is a `StrEnum` with
+  lowercase members. Both are this repo's ruff configuration (`N818`, `UP042`) over the reference
+  repository's spelling, and both are cosmetic.
+
+- **One contract more than step 11 asked for.** `Layers within core` is the rule the step names;
+  `Kernel purity` is the Done-when — `app/core/domain/` and `app/core/application/` import no
+  `fastapi`, `starlette`, `sqlmodel` or `sqlalchemy` — turned into something CI fails on rather
+  than something this document asserts. Stage 10's `Domain forbids persistence` widens the same
+  idea to the modules and can absorb it.
+
+- **The goldens are committed, at `api/tests/golden/`.** `/tmp` does not survive the week between
+  stages, and Stages 10–13 all diff against them. `tests/golden/README.md` carries the capture and
+  compare commands and the one rule that makes them useful: these files change only in a commit
+  that also changes `seed/catalog.yaml`.
+
+Two smaller shapes worth knowing before Stage 10 builds on them:
+
+- `create_app(*, title, version, description, router, settings)` rather than `create_app(title,
+  router)` — the FastAPI metadata is part of the OpenAPI document and settings has to arrive from
+  somewhere. `app/main.py` builds one root router, mounts the three modules on it in the order
+  they were mounted before, and hangs `/healthz` off the end, because route order is what OpenAPI
+  is generated from.
+- `BasePaginatedOutput.limit` and `.offset` are optional, like `BaseFilter`'s. Core has no opinion
+  about page size; the feature that has a page narrows them to `int` in its own subclass, which is
+  a stricter schema over an identical body.
+
 ## Done when
 
 `uv run lint-imports` passes with the `core` layers contract active, `app.main:app` still imports at
 the same path, `/v1/catalog` and `/v1/platforms/bristlecone` are byte-identical to the goldens
 captured at the top of the checkpoint, and no file under `app/core/domain/` or
 `app/core/application/` imports `sqlmodel`, `sqlalchemy`, or `fastapi`.
+
+All four hold. Eight contracts kept, 124 tests pass, both golden diffs are empty, and the last
+criterion is now a contract (`Kernel purity`) rather than a grep.

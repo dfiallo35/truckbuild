@@ -4,6 +4,8 @@
 |---|---|---|
 | Pricing & rules (backend) | pytest | Every `requires`/`excludes` rule, base + delta arithmetic, empty and maximal builds |
 | API contract | pytest + httpx | Catalog shape, quote validation rejection, admin auth, tampered-price rejection |
+| Wire contract, across a refactor | `diff` against `api/tests/golden/` | `/v1/catalog` and `/v1/platforms/bristlecone`, byte for byte, as stage 9 served them |
+| The `core` kernel | pytest | The filter's UTC assumption, `exec`'s hook order and its abort, `BaseRepositoryPostgres.filter` against a throwaway table |
 | Pricing mirror (front end) | Vitest | **Shared fixtures with the pytest suite** so client and server prices cannot drift |
 | Build encoding | Vitest | URL round-trip: encode → decode → identical selection |
 | Telemetry | pytest | Request ids survive the hop between services; the Sentry scrubber drops lead data |
@@ -35,8 +37,15 @@ Interactive elements are addressed by ARIA role and visible text, never by test 
 double duty: a spec that can find an option by role is evidence a screen reader can, so a change that
 breaks the accessible name breaks the suite.
 
-Follow TDD for `services/pricing.py` and `services/rules.py` specifically. They are pure and total, and they
-are the place where a silent bug costs real money.
+Follow TDD for `app/modules/catalog/domain/pricing.py` and `.../domain/rules.py` specifically. They are
+pure and total, and they are the place where a silent bug costs real money.
+
+## The kernel's own tests
+
+`tests/core/` tests `app/core/` and nothing else — no module, no router, and (apart from
+`test_repositories.py`, which declares its own throwaway table and drops it again) no database. A
+kernel test that needs a feature to exist is a kernel that has learned something it should not
+know.
 
 ## Shared fixtures
 

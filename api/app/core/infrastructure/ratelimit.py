@@ -1,24 +1,21 @@
-"""A fixed-memory sliding-window rate limiter. Pure: no ``fastapi`` or ``sqlmodel`` imports.
+"""A fixed-memory sliding-window rate limiter: the in-process implementation of
+``IRateLimiter``. Pure otherwise -- no ``fastapi`` or ``sqlmodel`` imports.
 
 Deliberately in-process. The API runs as a single small service and the thing being limited is
 form submission, where the cost of an occasional miss after a restart or across two machines is
 one extra lead to delete. The upgrade path is a shared Redis counter, at which point only this
-module changes.
+module changes -- which is what the port in ``core/domain/interfaces.py`` buys.
 """
 
 import time
 from collections import deque
 from dataclasses import dataclass, field
 
-
-@dataclass(frozen=True)
-class RateLimitVerdict:
-    allowed: bool
-    retry_after_seconds: int = 0
+from app.core.domain.interfaces import IRateLimiter, RateLimitVerdict
 
 
 @dataclass
-class RateLimiter:
+class RateLimiter(IRateLimiter):
     """At most ``limit`` hits per ``window_seconds`` for a given key."""
 
     limit: int

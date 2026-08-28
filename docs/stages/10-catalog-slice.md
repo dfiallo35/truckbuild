@@ -156,8 +156,8 @@ grep -rn "sqlmodel\|sqlalchemy" app/modules/catalog/domain/ app/modules/catalog/
 git diff --stat fixtures/pricing-cases.json web/src/lib/pricing.ts web/src/lib/rules.ts
 # empty
 
-curl -s localhost:8000/v1/catalog | jq -S . | diff /tmp/catalog.before.json -
-curl -s localhost:8000/v1/platforms/bristlecone | jq -S . | diff /tmp/platform.before.json -
+curl -s localhost:8000/v1/catalog               | jq -S . | diff tests/golden/catalog.json -
+curl -s localhost:8000/v1/platforms/bristlecone | jq -S . | diff tests/golden/platform-bristlecone.json -
 ```
 
 The N+1 fix needs a check that survives the next refactor, so assert it rather than eyeballing a

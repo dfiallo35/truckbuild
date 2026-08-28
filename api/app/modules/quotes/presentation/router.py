@@ -19,10 +19,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
+from app.core.application.dtos import FieldError
 from app.core.config import Settings, get_settings
-from app.core.db import get_session
-from app.core.errors import FieldError, error_response
-from app.core.ratelimit import RateLimiter
+from app.core.infrastructure.postgres.database import get_session
+from app.core.infrastructure.ratelimit import RateLimiter
+from app.core.presentation.errors import error_response
 from app.modules.catalog.domain.entities import Option, OptionRule, Platform
 from app.modules.catalog.domain.pricing import PriceableOption, PriceablePlatform, price_build
 from app.modules.catalog.domain.rules import OptionRule as PureRule
