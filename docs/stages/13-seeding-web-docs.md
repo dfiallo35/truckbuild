@@ -1,6 +1,6 @@
 # Stage 13 — Seeding, the web app, and the narrative
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-28.
 
 **Goal:** the seed path goes through the same layers as everything else, the three real seam
 problems in `web/src/lib/` are fixed, and the documentation describes the code that exists.
@@ -125,3 +125,22 @@ Re-seeding twice leaves the row counts unchanged, the CI-equivalent sweep is gre
 services, both halves of the pricing mirror still pass against `fixtures/pricing-cases.json`
 unchanged, the path check above prints nothing, and `docs/architecture.md` describes the code that
 exists.
+
+## Notes from the build
+
+- **`upsert_from_catalog`'s rule sync is global, not per-platform.** `_sync_rules` resyncs the
+  whole `optionrule` table against whatever `catalog["rules"]` names — true of the original
+  `app/seed.py` too, just never reachable before, since its one real caller always passed the
+  complete seed catalog. Writing `test_seed_upsert.py` against a synthetic single-platform catalog
+  hit this directly: passing an empty `rules` list wiped every real platform's rules out from
+  under the rest of the test session. Fixed by having the test read and pass back the real rules
+  unchanged, and documented as a caveat on `upsert_from_catalog` itself — a caller other than the
+  full seed must carry the complete rule set or it will silently drop rules it didn't touch.
+- **`upsert_from_catalog` has to commit, not just flush.** Unlike `create`/`update`, which only
+  flush and leave the caller to commit, this is the one write that must be durable before
+  `SeedCatalogUseCase` invalidates the cache right after — otherwise the revalidated page can
+  refetch a value it can't yet see under read-committed isolation. Same shape of reasoning as
+  `QuoteRepositoryPostgres.create`'s early commit, for a different reason.
+- **`docs/setup.md` had a stale `api/app/config.py` reference** predating stage 9's move to
+  `app/core/config.py`, caught only by actually running the path-existence checkpoint rather than
+  by review.
