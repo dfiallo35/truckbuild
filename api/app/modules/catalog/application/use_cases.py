@@ -95,3 +95,42 @@ class RevalidateCatalogUseCase(BaseUseCase):
         self.validate()
         result = self.run(tags)
         return self.post_run(tags, result)
+
+
+class SeedCatalogUseCase(BaseUseCase):
+    """Load a catalog dict into storage, upserting by slug, then tell the web app's cache.
+
+    The one writer the catalog has. Built directly by ``app/seed.py`` rather than through
+    ``CatalogService`` -- seeding is a second entrypoint into this module's own layers, not an
+    HTTP concern, which is the point of keeping the wiring for it out of the service.
+    """
+
+    def __init__(
+        self,
+        *args,
+        invalidator: ICacheInvalidator | None = None,
+        repository: IPlatformRepository | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, repository=repository, **kwargs)
+        self.invalidator = invalidator
+
+    def pre_run(self, catalog: dict, revalidate: bool) -> dict:
+        return catalog
+
+    def validate(self, catalog: dict, revalidate: bool) -> None:
+        pass
+
+    def run(self, catalog: dict) -> list[str]:
+        return self.repository.upsert_from_catalog(catalog)
+
+    def post_run(self, slugs: list[str], revalidate: bool) -> list[str]:
+        if revalidate:
+            self.invalidator.invalidate(tags_for_platforms(slugs))
+        return slugs
+
+    def exec(self, catalog: dict, *, revalidate: bool = True) -> list[str]:
+        catalog = self.pre_run(catalog, revalidate)
+        self.validate(catalog, revalidate)
+        slugs = self.run(catalog)
+        return self.post_run(slugs, revalidate)
