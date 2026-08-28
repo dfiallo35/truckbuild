@@ -74,8 +74,8 @@ Three liabilities come with the current arrangement, all dated rather than perma
   Python function has no equivalent hook. Migrations are run by hand against Neon's direct URL,
   *before* deploying code that depends on them. This is the weakest part of the setup: forgetting it
   means a deploy that succeeds while its queries fail.
-- **The rate limiter is per-instance.** `app/core/ratelimit.py` keeps counters in process memory,
-  and serverless instances do not share state. It still blunts a naive flood, but it is no longer the
+- **The rate limiter is per-instance.** `app/core/infrastructure/ratelimit.py` keeps counters in
+  process memory, and serverless instances do not share state. It still blunts a naive flood, but it is no longer the
   global control it was designed as. The fix is a shared store — Postgres or KV — and it is deferred
   rather than overlooked.
 

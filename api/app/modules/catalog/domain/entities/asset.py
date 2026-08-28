@@ -1,9 +1,10 @@
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field
 
+from app.core.infrastructure.postgres.tables import BaseTable
 from app.modules.catalog.domain.enums import AssetKind
 
 
-class Asset(SQLModel, table=True):
+class Asset(BaseTable, table=True):
     """An image. ``platform_id`` is set for hero/gallery assets and for the platform's viewer
     base layer; ``option_id`` for an option's thumbnail/layer -- exactly one of the two is
     populated.
@@ -12,7 +13,6 @@ class Asset(SQLModel, table=True):
     composite, and the platform's base layer is always 0.
     """
 
-    id: int | None = Field(default=None, primary_key=True)
     kind: AssetKind
     url: str
     alt_text: str

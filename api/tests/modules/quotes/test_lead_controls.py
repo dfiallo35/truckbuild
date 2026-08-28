@@ -3,7 +3,7 @@ and the spam heuristics. No database, no HTTP."""
 
 import re
 
-from app.core.ratelimit import RateLimiter
+from app.core.infrastructure.ratelimit import RateLimiter
 from app.modules.quotes.domain.refs import ALPHABET, new_ref
 from app.modules.quotes.domain.spam import screen
 

@@ -1,64 +1,45 @@
-"""FastAPI application entrypoint."""
+"""FastAPI application entrypoint: the composition root, and nothing else.
 
-import logging
+Which modules exist and in what order they are mounted is the one thing about this app that is
+not generic, so it is all that is left here. Everything else -- CORS, the exception handlers,
+telemetry -- is stated once in ``app/core/presentation/app.py``.
 
-from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
-from starlette.exceptions import HTTPException
+``app.main:app`` is named by ``vercel.json``, the Dockerfile and ``docker compose``; the path
+does not move.
+"""
+
+from fastapi import APIRouter
 
 from app.core.config import get_settings
-from app.core.errors import http_error_handler, validation_error_handler
-from app.core.telemetry import install as install_telemetry
+from app.core.presentation.app import create_app
 from app.modules.admin import router as admin_router
 from app.modules.catalog import router as catalog_router
 from app.modules.quotes import router as quotes_router
 
 settings = get_settings()
 
-# Uvicorn configures its own loggers and nothing else, so without this the application's own
-# INFO lines -- the stored-quote records and, in development, the mail the mailer would have
-# sent -- go nowhere at all.
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
+root_router = APIRouter()
 
-app = FastAPI(
-    title="TruckBuild API",
-    version="0.1.0",
-    description="Catalog, configurator pricing, and quote submission for TruckBuild.",
-)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-    # The web app forwards its request id on the hop into this service, and reads it back off
-    # the response so a browser-side failure and an API-side one share an identifier. Without
-    # this the header is set but unreadable from a browser.
-    expose_headers=["X-Request-ID"],
-)
-
-# Structured request logs always; Sentry only when a DSN is configured. Added last on purpose:
-# `add_middleware` inserts at position 0 and the stack is built by wrapping in reverse, so the
-# last one added is the outermost. Telemetry wants to be outermost -- it stamps the request id
-# before anything else can fail, and it sees the response every other layer produced.
-install_telemetry(app, settings)
-
-# Every rejection leaves this API in one shape, FastAPI's own 422 included, so the web app
-# has a single error body to parse and render beside the field at fault. See app/core/errors.py.
-app.add_exception_handler(RequestValidationError, validation_error_handler)
-app.add_exception_handler(HTTPException, http_error_handler)
-
-app.include_router(catalog_router)
-app.include_router(quotes_router)
-app.include_router(admin_router)
+root_router.include_router(catalog_router)
+root_router.include_router(quotes_router)
+root_router.include_router(admin_router)
 
 
-@app.get("/healthz", tags=["meta"])
+# Registered after the modules, as it was when it hung off the app directly: route order is what
+# OpenAPI is generated from, and a reordered document is a diff for every reader of it.
+@root_router.get("/healthz", tags=["meta"])
 async def healthz() -> dict[str, str]:
     """Liveness probe used by Docker Compose and the host's health check.
 
     Also the way to wake a sleeping free-tier instance before a deploy that needs it -- see
     docs/deploy.md."""
     return {"status": "ok", "environment": settings.environment}
+
+
+app = create_app(
+    title="TruckBuild API",
+    version="0.1.0",
+    description="Catalog, configurator pricing, and quote submission for TruckBuild.",
+    router=root_router,
+    settings=settings,
+)

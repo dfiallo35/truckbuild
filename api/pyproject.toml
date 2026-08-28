@@ -82,6 +82,31 @@ ignore_imports = [
 ]
 
 [[tool.importlinter.contracts]]
+name = "Layers within core"
+# The same rule the modules already carry, now that `core` has the same four layers. `core` is a
+# module in every respect except that everything is allowed to import it -- so the kernel that
+# every feature builds on cannot itself have a domain that reaches for a web framework, which is
+# what would quietly make every module's domain impure by inheritance.
+# `config.py` is deliberately outside the layers: it is read by every one of them and belongs to
+# none, which is what `exhaustive = false` leaves room for. `revalidate.py` is outside for a
+# different reason -- Stage 10 moves it into the catalog module, where its vocabulary belongs.
+type = "layers"
+layers = ["presentation | infrastructure", "application", "domain"]
+containers = ["app.core"]
+exhaustive = false
+
+[[tool.importlinter.contracts]]
+name = "Kernel purity"
+# The inner two layers of the kernel name neither a database nor a web framework. This is the
+# rule that makes the rest of the migration possible: `BaseEntity` is what every module's
+# entities move onto in Stages 10-12, and an impure base class would make every one of them
+# impure by inheritance -- at which point the "domain forbids persistence" contract Stage 10
+# turns on could never go green. Asserted in docstrings since this stage; checked from here on.
+type = "forbidden"
+source_modules = ["app.core.domain", "app.core.application"]
+forbidden_modules = ["fastapi", "starlette", "sqlmodel", "sqlalchemy"]
+
+[[tool.importlinter.contracts]]
 name = "Module direction"
 # admin -> quotes -> catalog -> core, and the arrows only point one way. A layers contract over
 # the four gives the whole DAG in one rule, including "core imports no module, ever".

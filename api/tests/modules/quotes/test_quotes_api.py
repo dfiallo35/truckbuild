@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
-from app.core.db import engine
+from app.core.infrastructure.postgres.database import engine
 from app.main import app
 from app.modules.quotes.domain.entities import Quote
 from app.modules.quotes.domain.enums import QuoteKind
@@ -148,7 +148,7 @@ def test_an_unknown_platform_is_404(ip: str) -> None:
 
 def test_a_malformed_body_comes_back_in_the_same_error_shape(ip: str) -> None:
     """FastAPI's own 422 is reshaped so the web app has one body to parse -- see
-    app/core/errors.py."""
+    app/core/presentation/errors.py."""
     response = submit(build_payload(contact={"name": "Dana", "email": "not-an-email"}), ip)
     assert response.status_code == 422
 

@@ -17,7 +17,7 @@ import yaml
 from sqlmodel import Session, select
 
 from app.core.config import get_settings
-from app.core.db import engine
+from app.core.infrastructure.postgres.database import engine
 from app.core.revalidate import revalidate, tags_for_platforms
 from app.modules.catalog.domain.entities import Asset, Option, OptionGroup, OptionRule, Platform
 from app.modules.catalog.domain.enums import AssetKind

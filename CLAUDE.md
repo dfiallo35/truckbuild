@@ -93,12 +93,18 @@ drives most structural decisions and is documented in `docs/decisions.md`:
 
 `api/app/` is one FastAPI app assembled at one composition root (`main.py`) out of feature modules under
 `app/modules/`, each carrying its own layers over a shared `app/core/`. One process, one database, one
-`SQLModel.metadata` — nothing is deployed independently. Three rules, all checked by
+`SQLModel.metadata` — nothing is deployed independently. Five rules, all checked by
 `uv run lint-imports` (contracts in `api/pyproject.toml`, rationale in
-`docs/stages/08-modules-and-layers.md`):
+`docs/stages/08-modules-and-layers.md` and `docs/stages/09-core-kernel.md`):
 
 - **Layers, inside every module:** `presentation : infrastructure → application → domain`. The two
   adapters are siblings and neither may import the other; `domain` imports nothing.
+- **The same layers inside `core`.** The kernel is a module in every respect except that everything
+  may import it. `config.py` sits outside the layers on purpose: every layer reads it and it belongs
+  to none.
+- **Kernel purity:** `app/core/domain/` and `app/core/application/` name no ORM and no web framework.
+  `BaseEntity` is what every module's entities move onto in stages 10–12, so an impure base class
+  would make each of them impure by inheritance.
 - **Module direction:** `admin → quotes → catalog → core`, a DAG, arrows one way only. `core` imports no
   module, ever, and a thing belongs in `core` only if more than one module uses it *or* it names no
   module's vocabulary.
@@ -111,22 +117,32 @@ A module carries only the layers it needs (`admin` owns no tables, so it has no 
 Three imports are pinned as named `ignore_imports` exceptions with the stage that removes each;
 that list should only ever shrink.
 
-**Two more rules arrive with stages 9–13, and are not true yet.** The layout those stages build is
-adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/property-management) —
-pure pydantic entities in `domain/models.py`, SQLModel tables in
-`infrastructure/postgres/tables.py`, a mapper between, a `BaseUseCase` template method
-(`pre_run → validate → run → post_run`) and its CRUD subclasses in a shared `core`. When it lands:
+**The kernel a module is built out of** lives in `app/core/`, laid out in the same four layers and
+adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/property-management):
 
-- **A `domain/` imports no ORM.** Today every entity *is* a SQLModel table, so `domain` imports
-  `sqlmodel` and only `pricing.py` and `rules.py` are held to the stricter rule. The entity split in
-  stages 10–12 widens it to every module. This is the one line that measures whether the migration
-  worked.
+- `core/domain/` — `BaseEntity` (pure pydantic, integer key), `IBaseRepository`, `IRateLimiter`,
+  `BaseFilter`, `BaseError`, `UseCaseEnum`.
+- `core/application/` — `BaseUseCase`, a template method driving `pre_run → validate → run →
+  post_run`, plus its CRUD subclasses; `BaseService`, which wires a mapper, a filter class and a
+  repository into them; `BaseMapper` (domain ↔ DTO); the DTOs, including the one error body.
+- `core/infrastructure/postgres/` — `BaseTable` (`id`, `created_at`, `updated_at`), `UTCDateTime`,
+  `BaseMapper` (table ↔ domain), `BaseRepositoryPostgres`, the engine and session.
+- `core/presentation/` — `create_app`, the exception handlers, telemetry, query-parameter filters.
+
+**Write a use case by overriding a hook, never `exec`.** `BaseFilter`'s `_eq` / `_in` / `_ilike` /
+`_gte` / `_lte` suffixes are load-bearing: `BaseRepositoryPostgres.filter` keys off exactly those
+names, so a field called `created_after` is silently ignored. The named deviations from the
+reference repo — FastAPI `Depends` rather than `dependency_injector`, sync rather than async,
+`limit`/`offset` rather than `page`/`size`, SQLModel tables, no i18n — are in
+`docs/stages/09-core-kernel.md`.
+
+**Two more rules arrive with stages 10–13, and are not true yet:**
+
+- **A module's `domain/` imports no ORM.** True of `core` since stage 9; every module's entity
+  still *is* a SQLModel table, so `app/modules/*/domain/` imports `sqlmodel` and only `pricing.py`
+  and `rules.py` are held to the stricter rule. The entity split in stages 10–12 widens it. This is
+  the one line that measures whether the migration worked.
 - **A `presentation/` writes no query.** Today all three routers compose their own SQL.
-
-Until stage 9 lands, write new code against the layout that exists, not the one being planned.
-`docs/stages/09-core-kernel.md` carries the target tree and the named deviations from the reference
-repo (FastAPI `Depends` rather than `dependency_injector`, sync rather than async,
-`limit`/`offset` rather than `page`/`size`, SQLModel tables, no i18n).
 
 ### Build state
 
@@ -167,11 +183,11 @@ of opening a second one that will conflict.
 The build is split into staged, independently reviewable steps in `docs/PLAN.md`, each with its own
 file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
 stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-Stages 0–8 are complete. Stage 8 moved `api/` into the modular-monolith layout described above;
-stages 9–13 do the untangling it was shaped to receive — the shared `core` kernel of base classes
-(9), then one module at a time onto it, `catalog` (10), `quotes` (11), `admin` (12), then seeding,
-web and docs (13). Every one of those stages keeps the wire contract byte-identical and diffs
-against a golden capture to prove it. The site is deployed at <https://truckbuild.vercel.app>
+Stages 0–9 are complete. Stage 8 moved `api/` into the modular-monolith layout described above and
+stage 9 built the `core` kernel every module extends; stages 10–12 move one module at a time onto
+it — `catalog` (10), `quotes` (11), `admin` (12) — then seeding, web and docs (13). Every one of
+those stages keeps the wire contract byte-identical and diffs against the golden capture in
+`api/tests/golden/` to prove it. The site is deployed at <https://truckbuild.vercel.app>
 with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
 and also records why the API runs as a Vercel Python function rather than the container
 `api/render.yaml` still describes.

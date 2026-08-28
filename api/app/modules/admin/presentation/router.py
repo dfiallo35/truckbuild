@@ -21,7 +21,7 @@ from sqlalchemy import func, or_
 from sqlmodel import Session, col, select
 
 from app.core.config import Settings, get_settings
-from app.core.db import get_session
+from app.core.infrastructure.postgres.database import get_session
 from app.core.revalidate import revalidate, tags_for_platforms
 from app.modules.admin.presentation.schemas import (
     QuotePage,

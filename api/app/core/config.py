@@ -34,16 +34,16 @@ class Settings(BaseSettings):
     sales_inbox: str = Field(default="sales@example.com")
     mail_from: str = Field(default="TruckBuild <builds@example.com>")
 
-    # Lead-form spam controls (see app/core/ratelimit.py and
+    # Lead-form spam controls (see app/core/infrastructure/ratelimit.py and
     # app/modules/quotes/domain/spam.py). Tuned to be generous: rejecting a real
     # customer costs more than storing a junk lead.
     quote_rate_limit: int = Field(default=5)
     quote_rate_limit_window_seconds: int = Field(default=600)
     quote_min_submit_ms: int = Field(default=2500)
 
-    # Error tracking (app/core/telemetry.py). Absent everywhere but production, where the
-    # SDK stays inert without a DSN -- so leaving this unset is a supported configuration, not
-    # a broken one. Structured request logs are emitted either way.
+    # Error tracking (app/core/presentation/telemetry.py). Absent everywhere but production,
+    # where the SDK stays inert without a DSN -- so leaving this unset is a supported
+    # configuration, not a broken one. Structured request logs are emitted either way.
     sentry_dsn: str | None = Field(default=None)
     sentry_traces_sample_rate: float = Field(default=1.0, ge=0.0, le=1.0)
 

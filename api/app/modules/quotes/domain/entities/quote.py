@@ -1,16 +1,13 @@
-from datetime import UTC, datetime
+from datetime import datetime
 
-from sqlalchemy import Column, DateTime
-from sqlmodel import Field, Relationship, SQLModel
+from sqlalchemy import func
+from sqlmodel import Field, Relationship
 
+from app.core.infrastructure.postgres.tables import BaseTable, UTCDateTime, utcnow
 from app.modules.quotes.domain.enums import QuoteKind
 
 
-def _utcnow() -> datetime:
-    return datetime.now(UTC)
-
-
-class QuoteLine(SQLModel, table=True):
+class QuoteLine(BaseTable, table=True):
     """One selected option, as it was priced at submission time.
 
     The option's name and price delta are copied rather than read through ``option_id``: a quote
@@ -19,7 +16,6 @@ class QuoteLine(SQLModel, table=True):
     live catalog, and is nulled rather than blocking a delete.
     """
 
-    id: int | None = Field(default=None, primary_key=True)
     quote_id: int = Field(foreign_key="quote.id", index=True)
     option_id: int | None = Field(default=None, foreign_key="option.id")
 
@@ -32,7 +28,7 @@ class QuoteLine(SQLModel, table=True):
     quote: "Quote" = Relationship(back_populates="lines")
 
 
-class Quote(SQLModel, table=True):
+class Quote(BaseTable, table=True):
     """A submitted lead: a priced build, or a general enquiry with no build attached.
 
     ``ref`` is the public identifier -- it is what the customer is shown, what the confirmation
@@ -41,7 +37,6 @@ class Quote(SQLModel, table=True):
     never a number the browser sent.
     """
 
-    id: int | None = Field(default=None, primary_key=True)
     ref: str = Field(unique=True, index=True)
     kind: QuoteKind
 
@@ -59,12 +54,18 @@ class Quote(SQLModel, table=True):
     notes: str = ""
 
     # Kept for abuse triage only. The API sits behind the web app, so this is the forwarded
-    # visitor address rather than the socket peer -- see app/core/ratelimit.py.
+    # visitor address rather than the socket peer -- see app/core/infrastructure/ratelimit.py.
     source_ip: str = ""
 
+    # Redeclared rather than inherited from ``BaseTable`` only to keep the index: the admin lead
+    # list orders on this column, and it is the one timestamp in the schema that predates the
+    # base class. The type and the server default are the base's.
     created_at: datetime = Field(
-        default_factory=_utcnow,
-        sa_column=Column(DateTime(timezone=True), nullable=False, index=True),
+        default_factory=utcnow,
+        nullable=False,
+        index=True,
+        sa_type=UTCDateTime,
+        sa_column_kwargs={"server_default": func.now()},
     )
 
     lines: list[QuoteLine] = Relationship(

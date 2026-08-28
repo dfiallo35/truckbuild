@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from app.core.db import get_session
+from app.core.infrastructure.postgres.database import get_session
 from app.modules.catalog.domain.entities import Asset, OptionRule, Platform
 from app.modules.catalog.domain.enums import AssetKind
 from app.modules.catalog.presentation.schemas import (
