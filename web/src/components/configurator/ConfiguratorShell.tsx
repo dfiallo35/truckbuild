@@ -102,7 +102,7 @@ export function ConfiguratorShell({ platform }: { platform: Platform }) {
           onSelectStep={goToStep}
         />
 
-        <BuildViewer platform={platform} selected={selected} activeGroupSlug={group?.slug} />
+        <BuildViewer platform={platform} selected={selected} />
 
         <OptionPanel
           ref={panelRef}

@@ -132,6 +132,38 @@ test.describe("configurator", () => {
     await expect(sheet).toBeVisible();
     await expect(sheet).toContainText(`$${total.toLocaleString("en-US")}`);
   });
+
+  test("the 3D canvas mounts, and toggling an option updates it without navigating", async ({
+    page,
+  }) => {
+    // Requires a platform with a synced model (Stage 15's `python -m app.assets sync`, run by
+    // an operator against a real GLB -- see docs/stages/15-blob-storage-ingest.md). CI seeds
+    // the catalog but never runs that sync, so `platform.model` is null there and the viewer
+    // stays on its poster forever, which is the correct behaviour, not a bug this spec should
+    // fail on. Skip rather than assert in that case; the WebGL path itself is covered by
+    // `tests/viewer-scene.test.ts` and by hand per the stage file's checkpoint.
+    await page.goto("/configurator/bristlecone");
+
+    const canvas = page.locator('[data-testid="build-viewer"] canvas');
+    const mounted = await canvas
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
+    test.skip(!mounted, "no platform has a synced 3D model in this environment");
+
+    // `load` fires on a real navigation, never on the `history.replaceState` an option toggle
+    // does -- so a stray full page load here means something regressed the SPA behaviour, not
+    // that the build total changed.
+    let loadCount = 0;
+    page.on("load", () => loadCount++);
+
+    await openStep(page, /Recovery & Protection/i);
+    await choose(page, "Heavy-Duty Winch Bumper");
+
+    expect(loadCount).toBe(0);
+    await expect(canvas).toBeVisible();
+    await expect(page).toHaveURL(/\/configurator\/bristlecone/);
+  });
 });
 
 test.describe("responsive layout", () => {
