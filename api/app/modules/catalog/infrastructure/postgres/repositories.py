@@ -32,6 +32,7 @@ from sqlmodel import col, select
 
 from app.core.infrastructure.postgres.repositories import BaseRepositoryPostgres
 from app.modules.catalog.domain.enums import AssetKind
+from app.modules.catalog.domain.exceptions import PlatformHasNoModelError, PlatformNotFoundError
 from app.modules.catalog.domain.filters import PlatformFilter
 from app.modules.catalog.domain.interfaces import IPlatformRepository
 from app.modules.catalog.domain.models import Platform
@@ -79,6 +80,29 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
         """One column, one statement -- naming the cache tags does not need the whole graph."""
         query = select(col(PlatformTable.slug)).order_by(col(PlatformTable.id))
         return list(self.session.exec(query).all())
+
+    def write_model_reference(self, slug: str, url: str, content_hash: str, byte_size: int) -> None:
+        """The one write ``python -m app.assets sync`` makes -- see the port's docstring for what
+        it deliberately leaves alone. ``SyncModelsUseCase.validate`` has already confirmed both
+        the platform and its ``BuildModelTable`` row exist before this is ever called; the checks
+        here are what keeps that true rather than assumed."""
+        platform = self.session.exec(
+            select(PlatformTable).where(PlatformTable.slug == slug)
+        ).first()
+        if platform is None:
+            raise PlatformNotFoundError(slug)
+
+        model = self.session.exec(
+            select(BuildModelTable).where(BuildModelTable.platform_id == platform.id)
+        ).first()
+        if model is None:
+            raise PlatformHasNoModelError(slug)
+
+        model.url = url
+        model.content_hash = content_hash
+        model.byte_size = byte_size
+        self.session.add(model)
+        self.session.commit()
 
     def _rows_for(self, platforms: list[PlatformTable]) -> CatalogRows:
         """Six statements, whatever the length of ``platforms``."""

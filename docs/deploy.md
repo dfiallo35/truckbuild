@@ -151,6 +151,31 @@ curl https://truckbuild-api.vercel.app/healthz
 curl -o /dev/null -w '%{http_code}\n' https://truckbuild-api.vercel.app/v1/admin/quotes   # expect 401
 ```
 
+## 2.5. Vercel Blob, for model GLBs
+
+Stage 15 gives the API a second place it writes to: model GLBs (5–50 MB each) go to Vercel Blob, not
+through the API itself — a Vercel function caps a request body at 4.5 MB, so there is deliberately no
+upload endpoint. `python -m app.assets sync` PUTs straight from an operator's machine to
+`blob.vercel-storage.com`, and only the resulting URL, content hash and byte size land in Postgres.
+
+From the API project's dashboard: **Storage → Create Database → Blob**, then connect it to the
+`truckbuild-api` project — this sets `BLOB_READ_WRITE_TOKEN` on it automatically. Copy that same value
+into your own shell before running a sync from an operator machine; `app/assets.py` selects
+`VercelBlobStore` whenever it is set and falls back to writing under `web/public/models/` when it is not,
+which is what docker compose, CI and the test suite use.
+
+```bash
+cd api
+export DATABASE_URL='postgresql+psycopg://…@ep-….aws.neon.tech/truckbuild?sslmode=require'
+export BLOB_READ_WRITE_TOKEN='vercel_blob_rw_…'
+uv run python -m app.assets sync --dry-run   # reports what would upload, writes nothing
+uv run python -m app.assets sync
+```
+
+Put the `.glb` files at `api/seed/models/<platform-slug>.glb` first — gitignored, since these are large
+binaries and `seed/catalog.yaml` stays the reviewable text half of the seed. A re-run only uploads a
+platform whose file's sha256 has changed since the last sync; everything else is reported `unchanged`.
+
 ## 3. The web app on Vercel
 
 Import the repository, then — the setting that matters — **set Root Directory to `web`**. The repository
@@ -199,6 +224,9 @@ cache tags. See `.claude/skills/catalog-change`.
 
 **A migration is not part of a deploy.** Run `alembic upgrade head` against the direct URL *before*
 pushing code that needs it.
+
+**Neither is a model change.** A new or updated GLB is `python -m app.assets sync` run from an operator
+machine, alongside the seed and the migration — see "Vercel Blob, for model GLBs" above.
 
 ## When something is wrong
 

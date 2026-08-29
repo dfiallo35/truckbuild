@@ -59,6 +59,14 @@ class IPlatformRepository(IBaseRepository):
     def list(self, filters: PlatformFilter) -> list[Platform]:
         pass  # pragma: no cover
 
+    @abstractmethod
+    def write_model_reference(self, slug: str, url: str, content_hash: str, byte_size: int) -> None:
+        """Write only ``url``/``content_hash``/``byte_size`` onto ``slug``'s ``BuildModel`` row --
+        the one write ``python -m app.assets sync`` makes. Everything else about the row (the
+        camera framing, ``alt_text``) is ``upsert_from_catalog``'s, from ``seed/catalog.yaml``;
+        this never touches them, the same way that write never touches these three."""
+        pass  # pragma: no cover
+
 
 @dataclass(frozen=True)
 class RevalidateResult:

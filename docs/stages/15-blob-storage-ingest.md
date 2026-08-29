@@ -1,6 +1,6 @@
 # Stage 15 — blob storage, and the ingest CLI
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-29.
 
 **Goal:** the model files reach Vercel Blob and their references reach Postgres, through one command
 run by an operator — `python -m app.assets sync` — with every node and material name in
@@ -138,3 +138,14 @@ contain, run `sync`, and confirm it refuses by name and writes nothing.
 A real GLB is in Blob, its URL is in Postgres and non-null on the wire, a second `sync` is a no-op,
 a deliberately wrong node name fails the sync with a message naming the node and the file, and the
 whole suite passes with `BLOB_READ_WRITE_TOKEN` unset.
+
+## Notes from the build
+
+`tests/modules/catalog/test_catalog_api.py::test_get_platform_carries_a_null_build_model_until_stage_15_uploads_one`
+reads the same local Postgres instance the checkpoint's manual `app.assets sync` run writes to.
+CI never runs that command against its ephemeral database, so the test always sees an unsynced
+`buildmodel` row there — but running the checkpoint's own manual steps against a long-lived local
+`docker compose` database leaves it synced, and the test then fails locally for a reason that has
+nothing to do with the code. Reset the three rows' `url`/`content_hash`/`byte_size` back to
+empty/zero after a manual verification run, the same way the checkpoint commands above leave no
+lasting opinion about whether a real sync happened.
