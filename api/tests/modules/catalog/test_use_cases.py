@@ -82,6 +82,11 @@ class FakePlatforms(IPlatformRepository):
     def delete(self, entity):  # pragma: no cover
         raise NotImplementedError
 
+    def write_model_reference(  # pragma: no cover - Stage 15's write, not this module's
+        self, slug, url, content_hash, byte_size
+    ):
+        raise NotImplementedError
+
 
 class FakeInvalidator(ICacheInvalidator):
     def __init__(self) -> None:

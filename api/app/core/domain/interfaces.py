@@ -64,3 +64,37 @@ class IRateLimiter(ABC):
     @abstractmethod
     def check(self, key: str) -> RateLimitVerdict:
         pass  # pragma: no cover
+
+
+@dataclass(frozen=True)
+class StoredBlob:
+    """Where a ``put`` landed. ``path`` is the storage-relative key handed to ``put`` -- distinct
+    from ``url`` because a caller that wants to ``delete`` or overwrite the same blob later needs
+    the key, not whatever a CDN front-ends it with.
+    """
+
+    url: str
+    path: str
+    byte_size: int
+
+
+class IBlobStore(ABC):
+    """Large binaries the database should not hold, as bytes in and a URL out.
+
+    Beside ``IRateLimiter`` rather than in ``catalog``: ``put``/``delete``/``exists`` name no
+    module's vocabulary, which is CLAUDE.md's rule for what belongs in ``core``. Today's only
+    caller is ``python -m app.assets sync`` (docs/stages/15-blob-storage-ingest.md), writing GLB
+    truck models; a second caller reaches for the same port rather than inventing its own.
+    """
+
+    @abstractmethod
+    def put(self, path: str, data: bytes, content_type: str) -> StoredBlob:
+        pass  # pragma: no cover
+
+    @abstractmethod
+    def delete(self, path: str) -> None:
+        pass  # pragma: no cover
+
+    @abstractmethod
+    def exists(self, path: str) -> bool:
+        pass  # pragma: no cover
