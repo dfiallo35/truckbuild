@@ -10,12 +10,13 @@ lazy load per platform for its groups and one per group for its options, issued 
 access inside the request session. Reading the catalog therefore cost a number of round trips
 proportional to how many platforms were seeded, which is the definition of an N+1.
 
-**The fix is the shape of this class, not a tuning flag.** ``list`` issues a fixed five statements
-whatever it is asked for -- platforms, their groups, their options, every asset either owns, and
-the rules over them -- buckets the rows by owner, and hands the mapper a complete
-``CatalogRows``. Nothing above this line holds a session, so nothing above this line can add a
-sixth. ``tests/modules/catalog/test_catalog_queries.py`` seeds a fourth platform and asserts the
-count does not move.
+**The fix is the shape of this class, not a tuning flag.** ``list`` issues a fixed seven
+statements whatever it is asked for -- platforms, their groups, their options, every asset either
+owns, the rules over them, every platform's build model, and every option's model effect --
+buckets the rows by owner, and hands the mapper a complete ``CatalogRows``. Nothing above this
+line holds a session, so nothing above this line can add an eighth.
+``tests/modules/catalog/test_catalog_queries.py`` seeds a fourth platform and asserts the count
+does not move.
 """
 
 # `list` is a method on this class (it is the port's name for "read many"), which shadows the
@@ -37,7 +38,9 @@ from app.modules.catalog.domain.models import Platform
 from app.modules.catalog.infrastructure.postgres.mappers import CatalogRows, PlatformMapper
 from app.modules.catalog.infrastructure.postgres.tables import (
     AssetTable,
+    BuildModelTable,
     OptionGroupTable,
+    OptionModelEffectTable,
     OptionRuleTable,
     OptionTable,
     PlatformTable,
@@ -78,7 +81,7 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
         return list(self.session.exec(query).all())
 
     def _rows_for(self, platforms: list[PlatformTable]) -> CatalogRows:
-        """Four statements, whatever the length of ``platforms``."""
+        """Six statements, whatever the length of ``platforms``."""
         platform_ids = [platform.id for platform in platforms]
 
         groups = self.session.exec(
@@ -112,6 +115,16 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
             select(OptionRuleTable)
             .where(col(OptionRuleTable.subject_option_id).in_(option_ids))
             .order_by(col(OptionRuleTable.id))
+        ).all()
+
+        models = self.session.exec(
+            select(BuildModelTable).where(col(BuildModelTable.platform_id).in_(platform_ids))
+        ).all()
+
+        effects = self.session.exec(
+            select(OptionModelEffectTable).where(
+                col(OptionModelEffectTable.option_id).in_(option_ids)
+            )
         ).all()
 
         groups_by_platform: dict[int, list[OptionGroupTable]] = defaultdict(list)
@@ -153,6 +166,8 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
             assets_by_option=assets_by_option,
             rules_by_platform=rules_by_platform,
             slug_by_option_id={option.id: option.slug for option in options},
+            model_by_platform={model.platform_id: model for model in models},
+            effect_by_option={effect.option_id: effect for effect in effects},
         )
 
     def upsert_from_catalog(self, catalog: dict) -> list[str]:
@@ -178,11 +193,13 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
         for platform_data in catalog["platforms"]:
             platform = self._upsert_platform(platform_data)
             self._upsert_platform_assets(platform, platform_data)
+            self._upsert_platform_model(platform, platform_data)
             for group_order, group_data in enumerate(platform_data["option_groups"]):
                 group = self._upsert_option_group(platform, group_order, group_data)
                 for option_order, option_data in enumerate(group_data["options"]):
                     option = self._upsert_option(group, option_order, option_data)
                     self._upsert_option_assets(option, option_data)
+                    self._upsert_option_model_effect(option, option_data)
 
         self.session.flush()
         self._sync_rules(catalog["rules"])
@@ -242,6 +259,28 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
 
         for stale in by_key.values():
             self.session.delete(stale)
+
+    def _upsert_platform_model(self, platform: PlatformTable, data: dict) -> None:
+        """The framing and description a platform's ``BuildModelTable`` row carries from
+        ``seed/catalog.yaml``. ``url``, ``content_hash`` and ``byte_size`` are never touched here
+        -- they are ``python -m app.assets sync``'s to write, and a re-seed that blanked them
+        would silently un-publish every model."""
+        model = data.get("model")
+        existing = self.session.exec(
+            select(BuildModelTable).where(BuildModelTable.platform_id == platform.id)
+        ).first()
+
+        if model is None:
+            if existing is not None:
+                self.session.delete(existing)
+            return
+
+        row = existing or BuildModelTable(platform_id=platform.id)
+        row.alt_text = model["alt_text"]
+        row.camera_orbit_deg = model["camera_orbit_deg"]
+        row.camera_distance_m = model["camera_distance_m"]
+        row.camera_target_y_m = model["camera_target_y_m"]
+        self.session.add(row)
 
     def _upsert_option_group(
         self, platform: PlatformTable, sort_order: int, data: dict
@@ -310,6 +349,27 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
 
         for stale in by_kind.values():
             self.session.delete(stale)
+
+    def _upsert_option_model_effect(self, option: OptionTable, data: dict) -> None:
+        """At most one ``OptionModelEffectTable`` row per option -- ``nodes`` for geometry,
+        ``material_target`` plus a colour for a finish, either, both, or neither."""
+        effect = data.get("model_effect")
+        existing = self.session.exec(
+            select(OptionModelEffectTable).where(OptionModelEffectTable.option_id == option.id)
+        ).first()
+
+        if effect is None:
+            if existing is not None:
+                self.session.delete(existing)
+            return
+
+        row = existing or OptionModelEffectTable(option_id=option.id)
+        row.nodes = effect.get("nodes", [])
+        row.material_target = effect.get("material_target")
+        row.base_color_hex = effect.get("base_color_hex")
+        row.metalness = effect.get("metalness")
+        row.roughness = effect.get("roughness")
+        self.session.add(row)
 
     def _sync_rules(self, rules_data: list[dict]) -> None:
         slug_to_id = {

@@ -31,6 +31,13 @@ platforms:
         alt_text: Bristlecone habitat interior with full galley
       - url: /images/bristlecone/gallery-2.jpg
         alt_text: Bristlecone rear three-quarter view with rooftop tent deployed
+    # The 3D build view's asset (Stage 15 uploads the bytes; no url here yet). Framing is
+    # content, not code -- see docs/stages/14-build-model-catalog.md.
+    model:
+      alt_text: Bristlecone expedition truck, 3D build model in standard configuration
+      camera_orbit_deg: 35
+      camera_distance_m: 9.5
+      camera_target_y_m: 1.6
     option_groups:
       - slug: cab-chassis
         name: Cab & Chassis
@@ -50,6 +57,8 @@ platforms:
               url: /images/bristlecone/viewer/cab-crew.png
               alt_text: Crew cab with a second row of doors
               z: 10
+            model_effect:
+              nodes: [bristlecone_cab-chassis_cab-crew]
 
       - slug: habitat-shell
         name: Habitat Shell
@@ -69,6 +78,8 @@ platforms:
               url: /images/bristlecone/viewer/shell-extended.png
               alt_text: Raised roof section over the forward habitat
               z: 20
+            model_effect:
+              nodes: [bristlecone_habitat-shell_shell-extended]
 
       - slug: interior-layout
         name: Interior Layout
@@ -111,6 +122,8 @@ platforms:
               url: /images/bristlecone/viewer/solar-standard.png
               alt_text: Single solar panel on the rear roof
               z: 42
+            model_effect:
+              nodes: [bristlecone_power-system_solar-standard]
           - slug: solar-max
             name: Maximum Solar Array (600 W)
             price_delta_cents: 420000
@@ -119,6 +132,8 @@ platforms:
               url: /images/bristlecone/viewer/solar-max.png
               alt_text: Solar panels covering the rear roof
               z: 42
+            model_effect:
+              nodes: [bristlecone_power-system_solar-max]
 
       - slug: water-thermal
         name: Water & Thermal
@@ -142,6 +157,8 @@ platforms:
               url: /images/bristlecone/viewer/ac-rooftop.png
               alt_text: Low-profile air conditioning unit on the roof
               z: 44
+            model_effect:
+              nodes: [bristlecone_water-thermal_ac-rooftop]
 
       - slug: suspension-tires
         name: Suspension & Tires
@@ -161,6 +178,8 @@ platforms:
               url: /images/bristlecone/viewer/suspension-longtravel.png
               alt_text: Oversize all-terrain tires on long-travel suspension
               z: 25
+            model_effect:
+              nodes: [bristlecone_suspension-tires_suspension-longtravel]
           - slug: suspension-longtravel-mt
             name: Long-Travel Suspension, Mud-Terrain Tires
             price_delta_cents: 890000
@@ -169,6 +188,8 @@ platforms:
               url: /images/bristlecone/viewer/suspension-longtravel-mt.png
               alt_text: Oversize mud-terrain tires on long-travel suspension
               z: 25
+            model_effect:
+              nodes: [bristlecone_suspension-tires_suspension-longtravel-mt]
 
       - slug: recovery-protection
         name: Recovery & Protection
@@ -188,6 +209,8 @@ platforms:
               url: /images/bristlecone/viewer/bumper-heavy.png
               alt_text: Reinforced front bumper with a winch cradle
               z: 30
+            model_effect:
+              nodes: [bristlecone_recovery-protection_bumper-heavy]
           - slug: winch-12000
             name: 12,000 lb Winch
             price_delta_cents: 340000
@@ -196,6 +219,8 @@ platforms:
               url: /images/bristlecone/viewer/winch-12000.png
               alt_text: Winch drum mounted in the front bumper
               z: 32
+            model_effect:
+              nodes: [bristlecone_recovery-protection_winch-12000]
           - slug: rock-sliders
             name: Rock Sliders
             price_delta_cents: 95000
@@ -204,6 +229,8 @@ platforms:
               url: /images/bristlecone/viewer/rock-sliders.png
               alt_text: Rock sliders along the rocker panels
               z: 28
+            model_effect:
+              nodes: [bristlecone_recovery-protection_rock-sliders]
 
       - slug: roof-storage
         name: Roof & Storage
@@ -219,6 +246,8 @@ platforms:
               url: /images/bristlecone/viewer/rooftop-tent.png
               alt_text: Hard-shell rooftop tent at the rear of the roof
               z: 46
+            model_effect:
+              nodes: [bristlecone_roof-storage_rooftop-tent]
           - slug: roof-rack-basic
             name: Roof Rack
             price_delta_cents: 60000
@@ -227,6 +256,8 @@ platforms:
               url: /images/bristlecone/viewer/roof-rack-basic.png
               alt_text: Low-profile rails running along the rear roof
               z: 40
+            model_effect:
+              nodes: [bristlecone_roof-storage_roof-rack-basic]
 
       - slug: exterior-finish
         name: Exterior Finish
@@ -245,6 +276,9 @@ platforms:
             swatch:
               url: /images/bristlecone/swatches/finish-satin-black.png
               alt_text: Satin black paint swatch
+            model_effect:
+              material_target: body_paint
+              base_color_hex: "#1b1b1b"
           - slug: finish-desert-tan
             name: Desert Tan
             price_delta_cents: 0
@@ -256,6 +290,9 @@ platforms:
             swatch:
               url: /images/bristlecone/swatches/finish-desert-tan.png
               alt_text: Desert tan paint swatch
+            model_effect:
+              material_target: body_paint
+              base_color_hex: "#c2a374"
           - slug: finish-forest-green
             name: Forest Green
             price_delta_cents: 0
@@ -267,6 +304,9 @@ platforms:
             swatch:
               url: /images/bristlecone/swatches/finish-forest-green.png
               alt_text: Forest green paint swatch
+            model_effect:
+              material_target: body_paint
+              base_color_hex: "#2f4a34"
 
   - slug: ironwood
     name: Ironwood
@@ -290,6 +330,11 @@ platforms:
     gallery:
       - url: /images/ironwood/gallery-1.jpg
         alt_text: Ironwood service body compartments open, tools racked
+    model:
+      alt_text: Ironwood service truck, 3D build model in standard configuration
+      camera_orbit_deg: 30
+      camera_distance_m: 8
+      camera_target_y_m: 1.3
     option_groups:
       - slug: cab-chassis
         name: Cab & Chassis
@@ -309,6 +354,8 @@ platforms:
               url: /images/ironwood/viewer/chassis-4x4.png
               alt_text: Raised four-wheel-drive stance with all-terrain tires
               z: 25
+            model_effect:
+              nodes: [ironwood_cab-chassis_chassis-4x4]
 
       - slug: service-body
         name: Service Body Configuration
@@ -328,6 +375,8 @@ platforms:
               url: /images/ironwood/viewer/body-extended.png
               alt_text: Extended service body with additional rear compartments
               z: 20
+            model_effect:
+              nodes: [ironwood_service-body_body-extended]
 
       - slug: crane-lifting
         name: Crane & Lifting
@@ -343,6 +392,8 @@ platforms:
               url: /images/ironwood/viewer/crane-3200lb.png
               alt_text: Articulating crane mounted behind the cab
               z: 35
+            model_effect:
+              nodes: [ironwood_crane-lifting_crane-3200lb]
           - slug: liftgate-hydraulic
             name: Hydraulic Lift Gate
             price_delta_cents: 380000
@@ -351,6 +402,8 @@ platforms:
               url: /images/ironwood/viewer/liftgate-hydraulic.png
               alt_text: Hydraulic lift gate folded at the rear
               z: 34
+            model_effect:
+              nodes: [ironwood_crane-lifting_liftgate-hydraulic]
 
       - slug: power-system
         name: Power System
@@ -366,6 +419,8 @@ platforms:
               url: /images/ironwood/viewer/generator-onboard.png
               alt_text: Underbody generator enclosure
               z: 30
+            model_effect:
+              nodes: [ironwood_power-system_generator-onboard]
           - slug: inverter-3000w
             name: 3,000 W Inverter
             price_delta_cents: 210000
@@ -400,6 +455,8 @@ platforms:
               url: /images/ironwood/viewer/scene-lighting.png
               alt_text: Scene lights above the cab casting light onto the body
               z: 42
+            model_effect:
+              nodes: [ironwood_lighting-safety_scene-lighting]
           - slug: arrow-board
             name: Rear Arrow Board
             price_delta_cents: 320000
@@ -408,6 +465,8 @@ platforms:
               url: /images/ironwood/viewer/arrow-board.png
               alt_text: Arrow board raised at the rear of the service body
               z: 44
+            model_effect:
+              nodes: [ironwood_lighting-safety_arrow-board]
 
       - slug: exterior-finish
         name: Exterior Finish
@@ -426,6 +485,9 @@ platforms:
             swatch:
               url: /images/ironwood/swatches/finish-fleet-white.png
               alt_text: Fleet white paint swatch
+            model_effect:
+              material_target: body_paint
+              base_color_hex: "#f2f0ea"
           - slug: finish-safety-orange
             name: Safety Orange
             price_delta_cents: 45000
@@ -437,6 +499,9 @@ platforms:
             swatch:
               url: /images/ironwood/swatches/finish-safety-orange.png
               alt_text: Safety orange paint swatch
+            model_effect:
+              material_target: body_paint
+              base_color_hex: "#ff6a13"
 
   - slug: sentinel
     name: Sentinel
@@ -460,6 +525,11 @@ platforms:
     gallery:
       - url: /images/sentinel/gallery-1.jpg
         alt_text: Sentinel command module interior with console seating
+    model:
+      alt_text: Sentinel command truck, 3D build model in standard configuration
+      camera_orbit_deg: 35
+      camera_distance_m: 9
+      camera_target_y_m: 1.7
     option_groups:
       - slug: cab-chassis
         name: Cab & Chassis
@@ -479,6 +549,8 @@ platforms:
               url: /images/sentinel/viewer/cab-crew-extended.png
               alt_text: Lengthened crew cab with a deeper rear door
               z: 10
+            model_effect:
+              nodes: [sentinel_cab-chassis_cab-crew-extended]
 
       - slug: command-module
         name: Command Module
@@ -498,6 +570,8 @@ platforms:
               url: /images/sentinel/viewer/module-extended.png
               alt_text: Extended command module with a second bank of windows
               z: 20
+            model_effect:
+              nodes: [sentinel_command-module_module-extended]
 
       - slug: communications
         name: Communications
@@ -513,6 +587,8 @@ platforms:
               url: /images/sentinel/viewer/mast-33ft.png
               alt_text: Pneumatic mast extended above the command module
               z: 46
+            model_effect:
+              nodes: [sentinel_communications_mast-33ft]
           - slug: radio-suite
             name: Multi-Band Radio Suite
             price_delta_cents: 720000
@@ -521,6 +597,8 @@ platforms:
               url: /images/sentinel/viewer/radio-suite.png
               alt_text: Antenna array along the module roof
               z: 44
+            model_effect:
+              nodes: [sentinel_communications_radio-suite]
 
       - slug: power-system
         name: Power System
@@ -536,6 +614,8 @@ platforms:
               url: /images/sentinel/viewer/generator-onboard-10kw.png
               alt_text: Underbody generator enclosure
               z: 30
+            model_effect:
+              nodes: [sentinel_power-system_generator-onboard-10kw]
           - slug: shoreline-transfer
             name: Automatic Shoreline Transfer Switch
             price_delta_cents: 165000
@@ -555,6 +635,8 @@ platforms:
               url: /images/sentinel/viewer/lightbar-full.png
               alt_text: Full-length light bar across the cab roof
               z: 42
+            model_effect:
+              nodes: [sentinel_lighting-warning_lightbar-full]
           - slug: scene-lighting-perimeter
             name: Perimeter Scene Lighting
             price_delta_cents: 145000
@@ -563,6 +645,8 @@ platforms:
               url: /images/sentinel/viewer/scene-lighting-perimeter.png
               alt_text: Perimeter scene lights washing the ground beside the module
               z: 43
+            model_effect:
+              nodes: [sentinel_lighting-warning_scene-lighting-perimeter]
 
       - slug: storage-racking
         name: Storage & Racking
@@ -582,6 +666,8 @@ platforms:
               url: /images/sentinel/viewer/exterior-compartments.png
               alt_text: Lockable compartment doors along the module flank
               z: 28
+            model_effect:
+              nodes: [sentinel_storage-racking_exterior-compartments]
 
       - slug: exterior-finish
         name: Exterior Finish
@@ -600,6 +686,9 @@ platforms:
             swatch:
               url: /images/sentinel/swatches/finish-command-white.png
               alt_text: Command white paint swatch
+            model_effect:
+              material_target: body_paint
+              base_color_hex: "#eef0ee"
           - slug: finish-tactical-black
             name: Tactical Black
             price_delta_cents: 65000
@@ -611,6 +700,9 @@ platforms:
             swatch:
               url: /images/sentinel/swatches/finish-tactical-black.png
               alt_text: Tactical black paint swatch
+            model_effect:
+              material_target: body_paint
+              base_color_hex: "#1b1b1b"
 
 rules:
   - subject: winch-12000

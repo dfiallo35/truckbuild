@@ -1,6 +1,6 @@
 # Stage 14 — the catalog carries a 3D model
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-29.
 
 **Goal:** the catalog gains the two entities a 3D build view needs — a `BuildModel` per platform and
 an `OptionModelEffect` per option that changes something visually — through the whole chain, from

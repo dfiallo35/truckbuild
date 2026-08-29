@@ -60,6 +60,29 @@ def test_get_platform_carries_the_viewer_composite() -> None:
     assert options["galley-full"]["layer"] is None
 
 
+def test_get_platform_carries_a_null_build_model_until_stage_15_uploads_one() -> None:
+    """A model whose bytes are not uploaded is not a model -- see
+    ``app/modules/catalog/application/mappers.py::_model``."""
+    body = client.get("/v1/platforms/bristlecone").json()
+    assert body["model"] is None
+
+
+def test_get_platform_carries_model_effects_for_options_with_a_layer() -> None:
+    body = client.get("/v1/platforms/bristlecone").json()
+    options = {o["slug"]: o for group in body["option_groups"] for o in group["options"]}
+
+    winch = options["winch-12000"]["model_effect"]
+    assert winch["nodes"] == ["bristlecone_recovery-protection_winch-12000"]
+    assert winch["material_target"] is None
+
+    finishes = next(g for g in body["option_groups"] if g["display_style"] == "swatch")
+    satin_black = next(o for o in finishes["options"] if o["slug"] == "finish-satin-black")
+    assert satin_black["model_effect"]["material_target"] == "body_paint"
+    assert satin_black["model_effect"]["base_color_hex"] == "#1b1b1b"
+
+    assert options["galley-full"]["model_effect"] is None
+
+
 def test_get_platform_carries_swatches_for_swatch_groups() -> None:
     body = client.get("/v1/platforms/bristlecone").json()
     finishes = next(g for g in body["option_groups"] if g["display_style"] == "swatch")

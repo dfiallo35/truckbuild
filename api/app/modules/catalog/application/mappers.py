@@ -10,13 +10,22 @@ being named ``z_index`` all the way down into the schema.
 from app.core.application.mappers import BaseMapper
 from app.modules.catalog.application.dtos import (
     AssetOutput,
+    BuildModelOutput,
     LayerOutput,
     OptionGroupOutput,
+    OptionModelEffectOutput,
     OptionOutput,
     OptionRuleOutput,
     PlatformOutput,
 )
-from app.modules.catalog.domain.models import Asset, Option, OptionGroup, Platform
+from app.modules.catalog.domain.models import (
+    Asset,
+    BuildModel,
+    Option,
+    OptionGroup,
+    OptionModelEffect,
+    Platform,
+)
 
 
 def _asset(asset: Asset | None) -> AssetOutput | None:
@@ -33,6 +42,33 @@ def _layer(asset: Asset | None) -> LayerOutput | None:
     return LayerOutput(url=asset.url, alt_text=asset.alt_text, z_index=asset.sort_order)
 
 
+def _model(model: BuildModel | None) -> BuildModelOutput | None:
+    """A model with no ``url`` maps to ``None``: from a consumer's point of view a model whose
+    bytes are not uploaded is not a model, and emitting ``{"url": ""}`` would force every reader
+    to check for an empty string -- the exact class of bug the Zod boundary exists to prevent."""
+    if model is None or not model.url:
+        return None
+    return BuildModelOutput(
+        url=model.url,
+        alt_text=model.alt_text,
+        camera_orbit_deg=model.camera_orbit_deg,
+        camera_distance_m=model.camera_distance_m,
+        camera_target_y_m=model.camera_target_y_m,
+    )
+
+
+def _model_effect(effect: OptionModelEffect | None) -> OptionModelEffectOutput | None:
+    if effect is None:
+        return None
+    return OptionModelEffectOutput(
+        nodes=effect.nodes,
+        material_target=effect.material_target,
+        base_color_hex=effect.base_color_hex,
+        metalness=effect.metalness,
+        roughness=effect.roughness,
+    )
+
+
 class PlatformMapper(BaseMapper):
     def to_api(self, entity: Platform) -> PlatformOutput:
         return PlatformOutput(
@@ -46,6 +82,7 @@ class PlatformMapper(BaseMapper):
             hero_image=_asset(entity.hero_image),
             viewer_base=_layer(entity.viewer_base),
             gallery=[_asset(asset) for asset in entity.gallery],
+            model=_model(entity.model),
             option_groups=[self._group(group) for group in entity.option_groups],
             rules=[
                 OptionRuleOutput(subject=rule.subject, relation=rule.relation, object=rule.object)
@@ -71,6 +108,7 @@ class PlatformMapper(BaseMapper):
             description=option.description,
             layer=_layer(option.layer),
             swatch=_asset(option.swatch),
+            model_effect=_model_effect(option.model_effect),
         )
 
     # The catalog is read-only over HTTP: it is loaded from the versioned seed/catalog.yaml, and

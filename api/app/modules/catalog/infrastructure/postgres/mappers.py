@@ -15,10 +15,20 @@ from dataclasses import dataclass, field
 
 from app.core.infrastructure.postgres.mappers import BaseMapper
 from app.modules.catalog.domain.enums import AssetKind
-from app.modules.catalog.domain.models import Asset, Option, OptionGroup, OptionRule, Platform
+from app.modules.catalog.domain.models import (
+    Asset,
+    BuildModel,
+    Option,
+    OptionGroup,
+    OptionModelEffect,
+    OptionRule,
+    Platform,
+)
 from app.modules.catalog.infrastructure.postgres.tables import (
     AssetTable,
+    BuildModelTable,
     OptionGroupTable,
+    OptionModelEffectTable,
     OptionRuleTable,
     OptionTable,
     PlatformTable,
@@ -41,6 +51,8 @@ class CatalogRows:
     assets_by_option: dict[int, list[AssetTable]] = field(default_factory=dict)
     rules_by_platform: dict[int, list[OptionRuleTable]] = field(default_factory=dict)
     slug_by_option_id: dict[int, str] = field(default_factory=dict)
+    model_by_platform: dict[int, BuildModelTable] = field(default_factory=dict)
+    effect_by_option: dict[int, OptionModelEffectTable] = field(default_factory=dict)
 
 
 def _asset(row: AssetTable | None) -> Asset | None:
@@ -54,6 +66,38 @@ def _asset(row: AssetTable | None) -> Asset | None:
         url=row.url,
         alt_text=row.alt_text,
         sort_order=row.sort_order,
+    )
+
+
+def _model(row: BuildModelTable | None) -> BuildModel | None:
+    if row is None:
+        return None
+    return BuildModel(
+        id=row.id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        url=row.url,
+        content_hash=row.content_hash,
+        byte_size=row.byte_size,
+        alt_text=row.alt_text,
+        camera_orbit_deg=row.camera_orbit_deg,
+        camera_distance_m=row.camera_distance_m,
+        camera_target_y_m=row.camera_target_y_m,
+    )
+
+
+def _model_effect(row: OptionModelEffectTable | None) -> OptionModelEffect | None:
+    if row is None:
+        return None
+    return OptionModelEffect(
+        id=row.id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        nodes=row.nodes,
+        material_target=row.material_target,
+        base_color_hex=row.base_color_hex,
+        metalness=row.metalness,
+        roughness=row.roughness,
     )
 
 
@@ -74,6 +118,7 @@ class PlatformMapper(BaseMapper):
             hero_image=_asset(next((a for a in assets if a.kind == AssetKind.hero), None)),
             viewer_base=_asset(next((a for a in assets if a.kind == AssetKind.layer), None)),
             gallery=[_asset(a) for a in assets if a.kind == AssetKind.gallery],
+            model=_model(rows.model_by_platform.get(table.id)),
             option_groups=[
                 self._group(group, rows) for group in rows.groups_by_platform.get(table.id, [])
             ],
@@ -119,6 +164,7 @@ class PlatformMapper(BaseMapper):
             sort_order=row.sort_order,
             layer=_asset(next((a for a in assets if a.kind == AssetKind.layer), None)),
             swatch=_asset(next((a for a in assets if a.kind == AssetKind.thumbnail), None)),
+            model_effect=_model_effect(rows.effect_by_option.get(row.id)),
         )
 
     def to_table(self, entity: Platform) -> PlatformTable:  # pragma: no cover - read-only module

@@ -125,14 +125,15 @@ def test_reading_the_catalog_costs_the_same_however_many_platforms_there_are() -
     )
 
 
-def test_reading_the_catalog_is_five_statements() -> None:
+def test_reading_the_catalog_is_seven_statements() -> None:
     """Named so the number is reviewable: platforms, their groups, their options, every asset
-    either owns, and the rules over them. A sixth is not automatically wrong -- but it is a
-    decision someone should have to make on purpose."""
+    either owns, the rules over them, every platform's build model, and every option's model
+    effect. An eighth is not automatically wrong -- but it is a decision someone should have to
+    make on purpose."""
     with Session(engine) as session, counting_statements() as counted:
         _read(session)
 
-    assert len(counted) == 5
+    assert len(counted) == 7
 
 
 def test_a_platform_read_by_slug_costs_the_same_as_the_whole_catalog() -> None:
@@ -143,4 +144,4 @@ def test_a_platform_read_by_slug_costs_the_same_as_the_whole_catalog() -> None:
 
     assert platform is not None
     assert platform.options and platform.rules
-    assert len(counted) == 5
+    assert len(counted) == 7
