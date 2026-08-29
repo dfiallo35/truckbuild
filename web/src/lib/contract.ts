@@ -27,6 +27,18 @@ const layerSchema = z.object({
   z_index: z.number().int(),
 });
 
+/**
+ * How selecting the option changes the 3D build model -- `nodes` for geometry, `material_target`
+ * plus a colour for a finish. See docs/stages/14-build-model-catalog.md.
+ */
+const optionModelEffectSchema = z.object({
+  nodes: z.array(z.string()),
+  material_target: z.string().nullable(),
+  base_color_hex: z.string().nullable(),
+  metalness: z.number().nullable(),
+  roughness: z.number().nullable(),
+});
+
 const optionSchema = z.object({
   slug: z.string(),
   name: z.string(),
@@ -34,6 +46,7 @@ const optionSchema = z.object({
   description: z.string(),
   layer: layerSchema.nullable(),
   swatch: assetSchema.nullable(),
+  model_effect: optionModelEffectSchema.nullable(),
 });
 
 const optionGroupSchema = z.object({
@@ -51,6 +64,18 @@ const optionRuleSchema = z.object({
   object: z.string(),
 });
 
+/**
+ * The 3D asset behind a platform's build view. `url` is `null` until Stage 15's blob sync has
+ * run -- a model whose bytes are not uploaded is not a model.
+ */
+const buildModelSchema = z.object({
+  url: z.string(),
+  alt_text: z.string(),
+  camera_orbit_deg: z.number(),
+  camera_distance_m: z.number(),
+  camera_target_y_m: z.number(),
+});
+
 export const platformSchema = z.object({
   slug: z.string(),
   name: z.string(),
@@ -62,6 +87,7 @@ export const platformSchema = z.object({
   hero_image: assetSchema.nullable(),
   viewer_base: layerSchema.nullable(),
   gallery: z.array(assetSchema),
+  model: buildModelSchema.nullable(),
   option_groups: z.array(optionGroupSchema),
   rules: z.array(optionRuleSchema),
 });
@@ -72,6 +98,8 @@ export const catalogSchema = z.object({
 
 export type Asset = z.infer<typeof assetSchema>;
 export type Layer = z.infer<typeof layerSchema>;
+export type BuildModel = z.infer<typeof buildModelSchema>;
+export type OptionModelEffect = z.infer<typeof optionModelEffectSchema>;
 export type Option = z.infer<typeof optionSchema>;
 export type OptionGroup = z.infer<typeof optionGroupSchema>;
 export type OptionRule = z.infer<typeof optionRuleSchema>;

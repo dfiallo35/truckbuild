@@ -75,7 +75,7 @@ what 14 created, 16 builds the viewer while the 2D composite still exists, and o
 | 11 | [`quotes` slice](stages/11-quotes-slice.md) — one use case per endpoint, ports for mail and rate limiting | **Complete** |
 | 12 | [`admin` slice](stages/12-admin-slice.md) — filters, its own DTOs, the full contract set | **Complete** |
 | 13 | [Seeding, web & docs](stages/13-seeding-web-docs.md) — closing the migration | **Complete** |
-| 14 | [Build model in the catalog](stages/14-build-model-catalog.md) — `BuildModel`, `OptionModelEffect`, additive | Not started |
+| 14 | [Build model in the catalog](stages/14-build-model-catalog.md) — `BuildModel`, `OptionModelEffect`, additive | **Complete** |
 | 15 | [Blob storage & ingest](stages/15-blob-storage-ingest.md) — `IBlobStore`, GLB validation, `app.assets` | Not started |
 | 16 | [The 3D viewer](stages/16-3d-viewer.md) — three.js, lazy chunk, lazy-chunk budgets | Not started |
 | 17 | [Retire the 2D composite](stages/17-retire-2d-composite.md) — the enum migration, the docs | Not started |

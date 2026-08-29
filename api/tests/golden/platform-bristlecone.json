@@ -18,6 +18,7 @@
     "kind": "hero",
     "url": "/images/bristlecone/hero.jpg"
   },
+  "model": null,
   "name": "Bristlecone",
   "option_groups": [
     {
@@ -27,6 +28,7 @@
         {
           "description": "Two-door cab, maximum habitat footprint.",
           "layer": null,
+          "model_effect": null,
           "name": "Regular Cab",
           "price_delta_cents": 0,
           "slug": "cab-regular",
@@ -38,6 +40,15 @@
             "alt_text": "Crew cab with a second row of doors",
             "url": "/images/bristlecone/viewer/cab-crew.png",
             "z_index": 10
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_cab-chassis_cab-crew"
+            ],
+            "roughness": null
           },
           "name": "Crew Cab",
           "price_delta_cents": 850000,
@@ -56,6 +67,7 @@
         {
           "description": "Insulated composite panel shell, standard height.",
           "layer": null,
+          "model_effect": null,
           "name": "Standard Composite Shell",
           "price_delta_cents": 0,
           "slug": "shell-standard",
@@ -67,6 +79,15 @@
             "alt_text": "Raised roof section over the forward habitat",
             "url": "/images/bristlecone/viewer/shell-extended.png",
             "z_index": 20
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_habitat-shell_shell-extended"
+            ],
+            "roughness": null
           },
           "name": "Extended Composite Shell",
           "price_delta_cents": 1200000,
@@ -85,6 +106,7 @@
         {
           "description": "Single-burner galley with under-counter fridge.",
           "layer": null,
+          "model_effect": null,
           "name": "Compact Galley",
           "price_delta_cents": 0,
           "slug": "galley-compact",
@@ -93,6 +115,7 @@
         {
           "description": "Two-burner galley, full-size fridge, and dry storage.",
           "layer": null,
+          "model_effect": null,
           "name": "Full Galley",
           "price_delta_cents": 650000,
           "slug": "galley-full",
@@ -101,6 +124,7 @@
         {
           "description": "Fixed bunk with under-bed storage, no galley.",
           "layer": null,
+          "model_effect": null,
           "name": "Bunk Layout",
           "price_delta_cents": 480000,
           "slug": "layout-bunk",
@@ -118,6 +142,7 @@
         {
           "description": "300 Ah lithium battery bank with 2000 W inverter.",
           "layer": null,
+          "model_effect": null,
           "name": "300 Ah Lithium Bank",
           "price_delta_cents": 950000,
           "slug": "lithium-300ah",
@@ -126,6 +151,7 @@
         {
           "description": "600 Ah lithium battery bank with 3000 W inverter.",
           "layer": null,
+          "model_effect": null,
           "name": "600 Ah Lithium Bank",
           "price_delta_cents": 1850000,
           "slug": "lithium-600ah",
@@ -138,6 +164,15 @@
             "url": "/images/bristlecone/viewer/solar-standard.png",
             "z_index": 42
           },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_power-system_solar-standard"
+            ],
+            "roughness": null
+          },
           "name": "Standard Solar Array (200 W)",
           "price_delta_cents": 180000,
           "slug": "solar-standard",
@@ -149,6 +184,15 @@
             "alt_text": "Solar panels covering the rear roof",
             "url": "/images/bristlecone/viewer/solar-max.png",
             "z_index": 42
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_power-system_solar-max"
+            ],
+            "roughness": null
           },
           "name": "Maximum Solar Array (600 W)",
           "price_delta_cents": 420000,
@@ -167,6 +211,7 @@
         {
           "description": "Upgrades the standard 40 gal tank to 80 gal.",
           "layer": null,
+          "model_effect": null,
           "name": "80 gal Fresh Water Upgrade",
           "price_delta_cents": 320000,
           "slug": "water-80gal",
@@ -175,6 +220,7 @@
         {
           "description": "Combustion heater independent of the engine.",
           "layer": null,
+          "model_effect": null,
           "name": "Diesel-Fired Cabin Heater",
           "price_delta_cents": 275000,
           "slug": "heater-diesel",
@@ -186,6 +232,15 @@
             "alt_text": "Low-profile air conditioning unit on the roof",
             "url": "/images/bristlecone/viewer/ac-rooftop.png",
             "z_index": 44
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_water-thermal_ac-rooftop"
+            ],
+            "roughness": null
           },
           "name": "Rooftop Air Conditioning",
           "price_delta_cents": 410000,
@@ -204,6 +259,7 @@
         {
           "description": "Factory suspension with all-terrain tires.",
           "layer": null,
+          "model_effect": null,
           "name": "Standard Suspension, All-Terrain Tires",
           "price_delta_cents": 0,
           "slug": "suspension-standard",
@@ -216,6 +272,15 @@
             "url": "/images/bristlecone/viewer/suspension-longtravel.png",
             "z_index": 25
           },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_suspension-tires_suspension-longtravel"
+            ],
+            "roughness": null
+          },
           "name": "Long-Travel Suspension, All-Terrain Tires",
           "price_delta_cents": 680000,
           "slug": "suspension-longtravel",
@@ -227,6 +292,15 @@
             "alt_text": "Oversize mud-terrain tires on long-travel suspension",
             "url": "/images/bristlecone/viewer/suspension-longtravel-mt.png",
             "z_index": 25
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_suspension-tires_suspension-longtravel-mt"
+            ],
+            "roughness": null
           },
           "name": "Long-Travel Suspension, Mud-Terrain Tires",
           "price_delta_cents": 890000,
@@ -245,6 +319,7 @@
         {
           "description": "Standard-duty steel front bumper.",
           "layer": null,
+          "model_effect": null,
           "name": "Standard Steel Bumper",
           "price_delta_cents": 0,
           "slug": "bumper-standard",
@@ -256,6 +331,15 @@
             "alt_text": "Reinforced front bumper with a winch cradle",
             "url": "/images/bristlecone/viewer/bumper-heavy.png",
             "z_index": 30
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_recovery-protection_bumper-heavy"
+            ],
+            "roughness": null
           },
           "name": "Heavy-Duty Winch Bumper",
           "price_delta_cents": 220000,
@@ -269,6 +353,15 @@
             "url": "/images/bristlecone/viewer/winch-12000.png",
             "z_index": 32
           },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_recovery-protection_winch-12000"
+            ],
+            "roughness": null
+          },
           "name": "12,000 lb Winch",
           "price_delta_cents": 340000,
           "slug": "winch-12000",
@@ -280,6 +373,15 @@
             "alt_text": "Rock sliders along the rocker panels",
             "url": "/images/bristlecone/viewer/rock-sliders.png",
             "z_index": 28
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_recovery-protection_rock-sliders"
+            ],
+            "roughness": null
           },
           "name": "Rock Sliders",
           "price_delta_cents": 95000,
@@ -302,6 +404,15 @@
             "url": "/images/bristlecone/viewer/rooftop-tent.png",
             "z_index": 46
           },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_roof-storage_rooftop-tent"
+            ],
+            "roughness": null
+          },
           "name": "Rooftop Tent",
           "price_delta_cents": 380000,
           "slug": "rooftop-tent",
@@ -313,6 +424,15 @@
             "alt_text": "Low-profile rails running along the rear roof",
             "url": "/images/bristlecone/viewer/roof-rack-basic.png",
             "z_index": 40
+          },
+          "model_effect": {
+            "base_color_hex": null,
+            "material_target": null,
+            "metalness": null,
+            "nodes": [
+              "bristlecone_roof-storage_roof-rack-basic"
+            ],
+            "roughness": null
           },
           "name": "Roof Rack",
           "price_delta_cents": 60000,
@@ -335,6 +455,13 @@
             "url": "/images/bristlecone/viewer/finish-satin-black.png",
             "z_index": 5
           },
+          "model_effect": {
+            "base_color_hex": "#1b1b1b",
+            "material_target": "body_paint",
+            "metalness": null,
+            "nodes": [],
+            "roughness": null
+          },
           "name": "Satin Black",
           "price_delta_cents": 0,
           "slug": "finish-satin-black",
@@ -351,6 +478,13 @@
             "url": "/images/bristlecone/viewer/finish-desert-tan.png",
             "z_index": 5
           },
+          "model_effect": {
+            "base_color_hex": "#c2a374",
+            "material_target": "body_paint",
+            "metalness": null,
+            "nodes": [],
+            "roughness": null
+          },
           "name": "Desert Tan",
           "price_delta_cents": 0,
           "slug": "finish-desert-tan",
@@ -366,6 +500,13 @@
             "alt_text": "Bristlecone body in forest green",
             "url": "/images/bristlecone/viewer/finish-forest-green.png",
             "z_index": 5
+          },
+          "model_effect": {
+            "base_color_hex": "#2f4a34",
+            "material_target": "body_paint",
+            "metalness": null,
+            "nodes": [],
+            "roughness": null
           },
           "name": "Forest Green",
           "price_delta_cents": 0,
@@ -385,9 +526,9 @@
   "purpose": "Expedition / overland habitat",
   "rules": [
     {
-      "object": "solar-max",
-      "relation": "excludes",
-      "subject": "rooftop-tent"
+      "object": "bumper-heavy",
+      "relation": "requires",
+      "subject": "winch-12000"
     },
     {
       "object": "galley-compact",
@@ -395,9 +536,9 @@
       "subject": "lithium-600ah"
     },
     {
-      "object": "bumper-heavy",
-      "relation": "requires",
-      "subject": "winch-12000"
+      "object": "solar-max",
+      "relation": "excludes",
+      "subject": "rooftop-tent"
     }
   ],
   "slug": "bristlecone",

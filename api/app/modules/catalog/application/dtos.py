@@ -30,6 +30,18 @@ class LayerOutput(BaseOutput):
     z_index: int
 
 
+class OptionModelEffectOutput(BaseOutput):
+    """How selecting the option changes the 3D build model. ``nodes`` reveals geometry;
+    ``material_target`` plus a colour recolors a material -- an option may carry either, both, or
+    neither."""
+
+    nodes: list[str]
+    material_target: str | None
+    base_color_hex: str | None
+    metalness: float | None
+    roughness: float | None
+
+
 class OptionOutput(BaseOutput):
     slug: str
     name: str
@@ -37,6 +49,7 @@ class OptionOutput(BaseOutput):
     description: str
     layer: LayerOutput | None = None
     swatch: AssetOutput | None = None
+    model_effect: OptionModelEffectOutput | None = None
 
 
 class OptionGroupOutput(BaseOutput):
@@ -54,6 +67,17 @@ class OptionRuleOutput(BaseOutput):
     object: str
 
 
+class BuildModelOutput(BaseOutput):
+    """The 3D asset behind a platform's build view. ``content_hash`` and ``byte_size`` are
+    operational, not wire -- see ``PlatformMapper._model`` for why they stop here."""
+
+    url: str
+    alt_text: str
+    camera_orbit_deg: float
+    camera_distance_m: float
+    camera_target_y_m: float
+
+
 class PlatformOutput(BaseOutput):
     slug: str
     name: str
@@ -65,6 +89,7 @@ class PlatformOutput(BaseOutput):
     hero_image: AssetOutput | None
     viewer_base: LayerOutput | None
     gallery: list[AssetOutput]
+    model: BuildModelOutput | None
     option_groups: list[OptionGroupOutput]
     rules: list[OptionRuleOutput]
 

@@ -99,6 +99,7 @@ export function apiPlatform(slug: string): Platform {
     hero_image: null,
     viewer_base: { url: `/images/${slug}/viewer/base.png`, alt_text: slug, z_index: 0 },
     gallery: [],
+    model: null,
     option_groups: platform.option_groups.map((group) => ({
       slug: group.slug,
       name: group.name,
@@ -116,6 +117,7 @@ export function apiPlatform(slug: string): Platform {
         swatch: option.swatch
           ? { kind: "thumbnail" as const, url: option.swatch.url, alt_text: option.swatch.alt_text }
           : null,
+        model_effect: null,
       })),
     })),
     rules: ruleablePlatform(slug).rules,

@@ -38,3 +38,22 @@ These are chosen to exercise the engine rather than to be exhaustive:
 - The 12,000 lb winch **requires** the heavy front bumper.
 - The 600 Ah lithium bank **excludes** the compact galley (space conflict).
 - The rooftop tent **excludes** the maximum-size solar array.
+
+## The 3D build model
+
+[Stage 14](stages/14-build-model-catalog.md) adds two entities that let the catalog describe a
+platform's 3D build view alongside its existing 2D viewer composite:
+
+- **BuildModel**, one per platform — the GLB behind the build view, plus how the camera should
+  frame it (`camera_orbit_deg`, `camera_distance_m`, `camera_target_y_m`). The URL, content hash
+  and byte size are filled in by [Stage 15](stages/15-blob-storage-ingest.md)'s
+  `python -m app.assets sync`, never by `seed/catalog.yaml`.
+- **OptionModelEffect**, at most one per option — how selecting it changes the model. **Geometry**
+  (a crew cab, a rooftop tent) names `nodes`: mesh names already present in the platform's GLB,
+  toggled visible. **Finish** (a paint colour) names `material_target` plus `base_color_hex`
+  instead, since one body mesh per colour would multiply the GLB by the number of finishes. An
+  option may use either, both, or neither.
+
+**Node naming convention:** `<platform>_<group>_<option>`, using each entity's own slug —
+e.g. `bristlecone_recovery-protection_winch-12000`. This is a contract with whoever authors the
+GLB, not something the application enforces; a node absent from the file simply reveals nothing.

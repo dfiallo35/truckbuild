@@ -40,6 +40,25 @@ class AssetTable(BaseTable, table=True):
     option_id: int | None = Field(default=None, foreign_key="option.id", index=True)
 
 
+class OptionModelEffectTable(BaseTable, table=True):
+    """How selecting an ``OptionTable`` row changes the 3D build model. ``option_id`` is
+    **unique** -- at most one effect per option, so a botched seed run cannot leave two rows for
+    the mapper to pick between arbitrarily.
+
+    ``nodes`` is read and written whole, never queried into and never joined against -- the same
+    reasoning that put ``PlatformTable.spec_highlights`` in a JSON column.
+    """
+
+    __tablename__ = "optionmodeleffect"
+
+    option_id: int = Field(foreign_key="option.id", unique=True, index=True)
+    nodes: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    material_target: str | None = None
+    base_color_hex: str | None = None
+    metalness: float | None = None
+    roughness: float | None = None
+
+
 class OptionTable(BaseTable, table=True):
     """A choice within an option group. ``slug`` is globally unique -- it is the public
     identifier used in shared build URLs (``?o=slug-a,slug-b``)."""
@@ -93,6 +112,28 @@ class OptionRuleTable(BaseTable, table=True):
     subject_option_id: int = Field(foreign_key="option.id", index=True)
     relation: RuleRelation
     object_option_id: int = Field(foreign_key="option.id", index=True)
+
+
+class BuildModelTable(BaseTable, table=True):
+    """The 3D asset behind a platform's build view. ``platform_id`` is **unique** -- one model
+    per platform, so a botched seed run cannot leave two rows for the mapper to pick between
+    arbitrarily.
+
+    ``url``, ``content_hash`` and ``byte_size`` are Stage 15's to write, via
+    ``python -m app.assets sync``: the seed upsert must never touch them, or a re-seed would
+    silently un-publish every model.
+    """
+
+    __tablename__ = "buildmodel"
+
+    platform_id: int = Field(foreign_key="platform.id", unique=True, index=True)
+    url: str = ""
+    content_hash: str = ""
+    byte_size: int = 0
+    alt_text: str
+    camera_orbit_deg: float
+    camera_distance_m: float
+    camera_target_y_m: float
 
 
 class PlatformTable(BaseTable, table=True):

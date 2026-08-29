@@ -31,6 +31,22 @@ class Asset(BaseEntity):
     sort_order: int = 0
 
 
+class OptionModelEffect(BaseEntity):
+    """How selecting an option changes the 3D build model. ``nodes`` reveals a mesh already
+    present in the platform's GLB -- geometry, like a crew cab or a rooftop tent.
+    ``material_target`` plus a colour recolors one instead of adding a mesh -- a finish, like
+    satin black or desert tan. An option may use either, both, or neither, exactly as it may
+    carry no ``layer`` today.
+    See docs/stages/14-build-model-catalog.md for why one mechanism cannot serve both.
+    """
+
+    nodes: list[str] = []
+    material_target: str | None = None
+    base_color_hex: str | None = None
+    metalness: float | None = None
+    roughness: float | None = None
+
+
 class Option(BaseEntity):
     """A choice within an option group. ``slug`` is globally unique -- it is the public
     identifier used in shared build URLs (``?o=slug-a,slug-b``), so renaming one is a breaking
@@ -44,6 +60,7 @@ class Option(BaseEntity):
 
     layer: Asset | None = None
     swatch: Asset | None = None
+    model_effect: OptionModelEffect | None = None
 
 
 class OptionGroup(BaseEntity):
@@ -73,6 +90,24 @@ class OptionRule(BaseEntity):
     object: str
 
 
+class BuildModel(BaseEntity):
+    """The 3D asset behind a platform's build view. ``url`` is empty until Stage 15's
+    ``python -m app.assets sync`` has run against it -- the bytes are a large binary and do not
+    live in ``seed/catalog.yaml``, only the framing and description do.
+
+    The camera fields are content, not code: the right orbit for a 24-foot expedition truck is
+    not the right orbit for a service body, and neither is a fact the viewer should hardcode.
+    """
+
+    url: str = ""
+    content_hash: str = ""
+    byte_size: int = 0
+    alt_text: str
+    camera_orbit_deg: float
+    camera_distance_m: float
+    camera_target_y_m: float
+
+
 class Platform(BaseEntity):
     """A configurable product line (the reference site's "model"), with everything the
     configurator and the marketing pages need already loaded.
@@ -92,6 +127,7 @@ class Platform(BaseEntity):
     hero_image: Asset | None = None
     viewer_base: Asset | None = None
     gallery: list[Asset] = []
+    model: BuildModel | None = None
 
     option_groups: list[OptionGroup] = []
     rules: list[OptionRule] = []
