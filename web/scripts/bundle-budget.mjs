@@ -1,12 +1,16 @@
 /**
- * Per-route client JavaScript budget.
+ * Client JavaScript budgets: what a route loads first, and what a lazy chunk costs once it
+ * does load.
  *
  * Next 16's Turbopack build summary reports which routes prerendered but not how much script
  * each one ships, so the number that actually matters here -- what a phone downloads to make
  * the configurator interactive -- is invisible in CI. This reads it back out of the build.
  *
- * The prerendered HTML is the honest source: whatever `<script src>` it references is what the
- * browser fetches. Sizes are gzipped, because that is what goes over the wire.
+ * The two halves below measure different things and both are worth failing on: the prerendered
+ * HTML's `<script src>` refs are the honest measure of what loads first, and are silent by
+ * design about anything `next/dynamic` split out of that -- which is what the loadable manifest
+ * half exists to catch instead. Sizes are gzipped throughout, because that is what goes over
+ * the wire.
  *
  * Run after `pnpm build`, from web/:  node scripts/bundle-budget.mjs
  */
@@ -35,6 +39,50 @@ const BUDGETS_KIB = {
   "purposes/expedition.html": 205,
   "contact.html": 205,
 };
+
+/**
+ * Budgets in KiB, gzipped, for named **lazy** chunks -- code `next/dynamic` split out of a
+ * route's first load, which the section above cannot see by design: a lazy chunk's entire
+ * point is that the prerendered HTML does not reference it, so a regression that made it
+ * eager would show up above but a regression that made it enormous would not show up at all.
+ *
+ * Resolved from the loadable manifest Next writes per page rather than from `<script src>`.
+ * The stage that added this (`docs/stages/16-3d-viewer.md`) named
+ * `.next/app-build-manifest.json`, which is what a webpack build produces; this repo's actual
+ * `next build` runs on Turbopack, which instead writes one
+ * `.next/server/app/<route>/page/react-loadable-manifest.json` per page, keyed by an
+ * unstable per-build module id rather than a name -- so `manifestPage` below points at the
+ * page and every chunk that page's manifest names is summed under the one budget.
+ *
+ * three.js plus its GLTF loader and orbit controls run 130-160 KiB gzipped on their own
+ * (see the stage file); 180 KiB leaves headroom without hiding a real regression.
+ */
+const LAZY_CHUNK_BUDGETS_KIB = {
+  viewer: { manifestPage: "configurator/[slug]", budget: 180 },
+};
+
+function lazyChunkBytes(manifestPage) {
+  const manifestPath = join(APP_DIR, manifestPage, "page", "react-loadable-manifest.json");
+  if (!existsSync(manifestPath)) {
+    throw new Error(
+      `No loadable manifest at ${manifestPath} -- did the dynamic import move or get removed?`,
+    );
+  }
+
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  const files = new Set(Object.values(manifest).flatMap((entry) => entry.files));
+
+  let gzipped = 0;
+  for (const file of files) {
+    const chunkPath = join(".next", file);
+    if (!existsSync(chunkPath)) {
+      throw new Error(`Loadable manifest for ${manifestPage} references a missing chunk: ${file}`);
+    }
+    gzipped += gzipSync(readFileSync(chunkPath)).length;
+  }
+
+  return { chunks: files.size, gzipped };
+}
 
 function routeScriptBytes(htmlPath) {
   const html = readFileSync(htmlPath, "utf8");
@@ -104,9 +152,35 @@ if (unmeasured.length) {
   process.exit(1);
 }
 
+const lazyRows = [];
+for (const [name, { manifestPage, budget }] of Object.entries(LAZY_CHUNK_BUDGETS_KIB)) {
+  const { chunks, gzipped } = lazyChunkBytes(manifestPage);
+  const kib = gzipped / 1024;
+
+  lazyRows.push(
+    [
+      kib.toFixed(1).padStart(7),
+      "KiB gz ",
+      String(chunks).padStart(2),
+      "chunks ",
+      `lazy:${name}`.padEnd(40),
+      `budget ${budget} KiB`,
+    ].join(" "),
+  );
+
+  if (kib > budget) {
+    failures.push(
+      `lazy:${name} (${manifestPage}): ${kib.toFixed(1)} KiB gz exceeds its ${budget} KiB budget`,
+    );
+  }
+}
+console.log(lazyRows.join("\n"));
+
 if (failures.length) {
   console.error(`\n${failures.length} route(s) over budget:\n  ${failures.join("\n  ")}`);
   process.exit(1);
 }
 
-console.log(`\nAll ${Object.keys(BUDGETS_KIB).length} budgeted routes within budget.`);
+console.log(
+  `\nAll ${Object.keys(BUDGETS_KIB).length} budgeted routes and ${Object.keys(LAZY_CHUNK_BUDGETS_KIB).length} lazy chunk(s) within budget.`,
+);

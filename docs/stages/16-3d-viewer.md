@@ -1,6 +1,6 @@
 # Stage 16 — the 3D viewer
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-29.
 
 **Goal:** `/configurator/[slug]` renders the platform's GLB in WebGL, and selecting an option
 changes the truck on screen with no network request — the property the 2D layer composite was built
@@ -121,3 +121,45 @@ By hand, at `localhost:3000/configurator/bristlecone`:
 The configurator renders the truck in 3D, options change it with no network request, `pnpm build`
 still reports Cache Components enabled, `bundle:check` passes **both** budgets, axe is clean,
 keyboard orbit works, and the scene disposes without leaking on unmount.
+
+## Notes from the build
+
+- **`next build` in this repo runs on Turbopack, not webpack**, even without `--turbo` -- Next
+  16 made it the default. Turbopack writes no `.next/app-build-manifest.json` at all, so step
+  6's plan to resolve the lazy chunk from it does not apply as written.
+  `web/scripts/bundle-budget.mjs` instead resolves it from the loadable manifest Next writes
+  per page, `.next/server/app/<route>/page/react-loadable-manifest.json`, which lists every
+  chunk a `next/dynamic` boundary on that page pulls in, keyed by an unstable per-build module
+  id rather than a name. `LAZY_CHUNK_BUDGETS_KIB` names the budget instead and points at the
+  page.
+- **A named export defeats the lazy split, silently.** `BuildViewer3D.tsx` first exported
+  `BuildViewer3D` as a named export, loaded as
+  `dynamic(() => import("./BuildViewer3D").then((m) => m.BuildViewer3D))`. The chunk this
+  produced was ~1.5 KB -- three.js was not in it. The actual cause was unrelated to that
+  `.then()`: `BuildViewer.tsx`, which is *not* lazy, imported `isWebglAvailable` from the same
+  `scene.ts` that imports `three`, `GLTFLoader` and `OrbitControls` at module scope. Importing
+  one named export from a module pulls in that module's entire static import graph regardless
+  of which export is used, so three.js rode into the eager bundle on that one import and
+  `configurator/bristlecone.html` measured 347 KiB against its 210 KiB budget. The fix was
+  splitting `isWebglAvailable` into its own `web/src/lib/viewer/capabilities.ts` with no `three`
+  import, not the default-export change -- which was made anyway, since it is still the more
+  reliable pattern for `next/dynamic` to split on. **The lesson generalizes**: a module meant to
+  be the lazy half of a split must not be imported, even for one small export, from anything on
+  the eager side.
+- **`react-hooks/set-state-in-effect` and `react-hooks/refs`** (this repo's eslint-plugin
+  react-hooks version) reject `setState(...)` as the first statement in an effect body and
+  `ref.current = ...` during render, respectively. `Header.tsx` already routes around the first
+  by wrapping the call in a named function and invoking it, which `BuildViewer.tsx` now follows
+  too; the "latest callbacks" ref in `BuildViewer3D.tsx` moved into a dependency-less
+  `useEffect` instead of assigning during render.
+- **CI never runs `python -m app.assets sync`** -- only `python -m app.seed`, so every
+  platform's `model` is `null` in the CI database and in a fresh `docker compose` environment.
+  The new e2e spec (`the 3D canvas mounts, and toggling an option updates it without
+  navigating`) detects this and skips itself rather than asserting against data that is not
+  guaranteed present; the WebGL path itself is exercised by `tests/viewer-scene.test.ts`'s pure
+  half and was verified by hand, screenshots included, against a synthetic GLB built for local
+  testing only (`api/seed/models/*.glb` is gitignored, so it never reached a commit). Loading
+  the same test data into the local dev Postgres is a mutation that outlives the browser
+  session -- `tests/modules/catalog/test_catalog_api.py` asserts `model is None` for a
+  never-synced platform, and a leftover local sync breaks that test with no code change in
+  sight. Revert any local `assets sync` before running `pytest`.

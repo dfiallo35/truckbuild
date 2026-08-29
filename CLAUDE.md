@@ -268,3 +268,10 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
   plainly installed, and the API then hangs rather than erroring, which reads like a database problem.
 - Never pipe a command whose exit status matters (e.g. `pnpm install`) through `tail` — it masks the
   exit code.
+- **`python -m app.assets sync` writes to the same Postgres `pytest` reads.** There is no separate
+  test database; `tests/modules/catalog/test_catalog_api.py` asserts a never-synced platform's
+  `model` is `None`. Syncing a model locally — including a synthetic GLB for manual 3D-viewer
+  testing — breaks that test with no code change in sight until the `buildmodel` row is reverted
+  (`url`, `content_hash` back to `''`, `byte_size` to `0`) and `web/public/models/` removed. CI never
+  runs `assets sync` at all (only `app.seed`), so every platform's `model` is `null` there too — code
+  that assumes a model exists needs to degrade to that state, not just to a happy path.
