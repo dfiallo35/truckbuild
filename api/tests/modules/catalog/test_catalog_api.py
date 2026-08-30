@@ -47,19 +47,6 @@ def test_get_platform_by_slug_returns_nested_shape() -> None:
     assert body["hero_image"]["url"]
 
 
-def test_get_platform_carries_the_viewer_composite() -> None:
-    """The configurator viewer stacks the platform base layer plus one layer per selected
-    option; an option with nothing to show contributes ``null`` rather than being omitted."""
-    body = client.get("/v1/platforms/bristlecone").json()
-    assert body["viewer_base"]["url"] == "/images/bristlecone/viewer/base.png"
-    assert body["viewer_base"]["z_index"] == 0
-
-    options = {o["slug"]: o for group in body["option_groups"] for o in group["options"]}
-    assert options["rooftop-tent"]["layer"]["url"] == "/images/bristlecone/viewer/rooftop-tent.png"
-    assert options["rooftop-tent"]["layer"]["z_index"] == 46
-    assert options["galley-full"]["layer"] is None
-
-
 def test_get_platform_carries_a_null_build_model_until_stage_15_uploads_one() -> None:
     """A model whose bytes are not uploaded is not a model -- see
     ``app/modules/catalog/application/mappers.py::_model``."""
@@ -67,7 +54,7 @@ def test_get_platform_carries_a_null_build_model_until_stage_15_uploads_one() ->
     assert body["model"] is None
 
 
-def test_get_platform_carries_model_effects_for_options_with_a_layer() -> None:
+def test_get_platform_carries_model_effects_for_options_with_geometry() -> None:
     body = client.get("/v1/platforms/bristlecone").json()
     options = {o["slug"]: o for group in body["option_groups"] for o in group["options"]}
 

@@ -3,15 +3,13 @@
 The other half of the pair whose first half is ``infrastructure/postgres/mappers.py``. That one
 knows about columns and foreign keys; this one knows about the wire. Keeping them apart is what
 lets a column be added without the response moving, and a response field be added without a
-migration -- and it is why ``Asset.sort_order`` reaches ``LayerOutput.z_index`` here rather than
-being named ``z_index`` all the way down into the schema.
+migration.
 """
 
 from app.core.application.mappers import BaseMapper
 from app.modules.catalog.application.dtos import (
     AssetOutput,
     BuildModelOutput,
-    LayerOutput,
     OptionGroupOutput,
     OptionModelEffectOutput,
     OptionOutput,
@@ -32,14 +30,6 @@ def _asset(asset: Asset | None) -> AssetOutput | None:
     if asset is None:
         return None
     return AssetOutput(kind=asset.kind, url=asset.url, alt_text=asset.alt_text)
-
-
-def _layer(asset: Asset | None) -> LayerOutput | None:
-    """``sort_order`` becomes ``z_index``: on the way in it is "where this sits in its owner's
-    list", on the way out it is "where this sits in the viewer composite"."""
-    if asset is None:
-        return None
-    return LayerOutput(url=asset.url, alt_text=asset.alt_text, z_index=asset.sort_order)
 
 
 def _model(model: BuildModel | None) -> BuildModelOutput | None:
@@ -80,7 +70,6 @@ class PlatformMapper(BaseMapper):
             spec_highlights=entity.spec_highlights,
             standard_equipment=entity.standard_equipment,
             hero_image=_asset(entity.hero_image),
-            viewer_base=_layer(entity.viewer_base),
             gallery=[_asset(asset) for asset in entity.gallery],
             model=_model(entity.model),
             option_groups=[self._group(group) for group in entity.option_groups],
@@ -106,7 +95,6 @@ class PlatformMapper(BaseMapper):
             name=option.name,
             price_delta_cents=option.price_delta_cents,
             description=option.description,
-            layer=_layer(option.layer),
             swatch=_asset(option.swatch),
             model_effect=_model_effect(option.model_effect),
         )

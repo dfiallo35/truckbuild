@@ -29,7 +29,6 @@
           "options": [
             {
               "description": "Two-door cab, maximum habitat footprint.",
-              "layer": null,
               "model_effect": null,
               "name": "Regular Cab",
               "price_delta_cents": 0,
@@ -38,11 +37,6 @@
             },
             {
               "description": "Four-door cab with rear bench seating.",
-              "layer": {
-                "alt_text": "Crew cab with a second row of doors",
-                "url": "/images/bristlecone/viewer/cab-crew.png",
-                "z_index": 10
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -68,7 +62,6 @@
           "options": [
             {
               "description": "Insulated composite panel shell, standard height.",
-              "layer": null,
               "model_effect": null,
               "name": "Standard Composite Shell",
               "price_delta_cents": 0,
@@ -77,11 +70,6 @@
             },
             {
               "description": "Raised roofline for standing headroom throughout.",
-              "layer": {
-                "alt_text": "Raised roof section over the forward habitat",
-                "url": "/images/bristlecone/viewer/shell-extended.png",
-                "z_index": 20
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -107,7 +95,6 @@
           "options": [
             {
               "description": "Single-burner galley with under-counter fridge.",
-              "layer": null,
               "model_effect": null,
               "name": "Compact Galley",
               "price_delta_cents": 0,
@@ -116,7 +103,6 @@
             },
             {
               "description": "Two-burner galley, full-size fridge, and dry storage.",
-              "layer": null,
               "model_effect": null,
               "name": "Full Galley",
               "price_delta_cents": 650000,
@@ -125,7 +111,6 @@
             },
             {
               "description": "Fixed bunk with under-bed storage, no galley.",
-              "layer": null,
               "model_effect": null,
               "name": "Bunk Layout",
               "price_delta_cents": 480000,
@@ -143,7 +128,6 @@
           "options": [
             {
               "description": "300 Ah lithium battery bank with 2000 W inverter.",
-              "layer": null,
               "model_effect": null,
               "name": "300 Ah Lithium Bank",
               "price_delta_cents": 950000,
@@ -152,7 +136,6 @@
             },
             {
               "description": "600 Ah lithium battery bank with 3000 W inverter.",
-              "layer": null,
               "model_effect": null,
               "name": "600 Ah Lithium Bank",
               "price_delta_cents": 1850000,
@@ -161,11 +144,6 @@
             },
             {
               "description": "Roof-mounted 200 W solar array.",
-              "layer": {
-                "alt_text": "Single solar panel on the rear roof",
-                "url": "/images/bristlecone/viewer/solar-standard.png",
-                "z_index": 42
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -182,11 +160,6 @@
             },
             {
               "description": "Roof-mounted 600 W solar array, covers most of the roofline.",
-              "layer": {
-                "alt_text": "Solar panels covering the rear roof",
-                "url": "/images/bristlecone/viewer/solar-max.png",
-                "z_index": 42
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -212,7 +185,6 @@
           "options": [
             {
               "description": "Upgrades the standard 40 gal tank to 80 gal.",
-              "layer": null,
               "model_effect": null,
               "name": "80 gal Fresh Water Upgrade",
               "price_delta_cents": 320000,
@@ -221,7 +193,6 @@
             },
             {
               "description": "Combustion heater independent of the engine.",
-              "layer": null,
               "model_effect": null,
               "name": "Diesel-Fired Cabin Heater",
               "price_delta_cents": 275000,
@@ -230,11 +201,6 @@
             },
             {
               "description": "Low-profile rooftop AC unit.",
-              "layer": {
-                "alt_text": "Low-profile air conditioning unit on the roof",
-                "url": "/images/bristlecone/viewer/ac-rooftop.png",
-                "z_index": 44
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -260,7 +226,6 @@
           "options": [
             {
               "description": "Factory suspension with all-terrain tires.",
-              "layer": null,
               "model_effect": null,
               "name": "Standard Suspension, All-Terrain Tires",
               "price_delta_cents": 0,
@@ -269,11 +234,6 @@
             },
             {
               "description": "Long-travel coilover suspension, all-terrain tires.",
-              "layer": {
-                "alt_text": "Oversize all-terrain tires on long-travel suspension",
-                "url": "/images/bristlecone/viewer/suspension-longtravel.png",
-                "z_index": 25
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -290,11 +250,6 @@
             },
             {
               "description": "Long-travel coilover suspension, mud-terrain tires.",
-              "layer": {
-                "alt_text": "Oversize mud-terrain tires on long-travel suspension",
-                "url": "/images/bristlecone/viewer/suspension-longtravel-mt.png",
-                "z_index": 25
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -320,7 +275,6 @@
           "options": [
             {
               "description": "Standard-duty steel front bumper.",
-              "layer": null,
               "model_effect": null,
               "name": "Standard Steel Bumper",
               "price_delta_cents": 0,
@@ -329,11 +283,6 @@
             },
             {
               "description": "Reinforced bumper rated for a winch mount.",
-              "layer": {
-                "alt_text": "Reinforced front bumper with a winch cradle",
-                "url": "/images/bristlecone/viewer/bumper-heavy.png",
-                "z_index": 30
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -350,11 +299,6 @@
             },
             {
               "description": "Electric winch, 12,000 lb capacity. Requires the heavy-duty bumper.",
-              "layer": {
-                "alt_text": "Winch drum mounted in the front bumper",
-                "url": "/images/bristlecone/viewer/winch-12000.png",
-                "z_index": 32
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -371,11 +315,6 @@
             },
             {
               "description": "Bolt-on rock sliders protecting the rocker panels.",
-              "layer": {
-                "alt_text": "Rock sliders along the rocker panels",
-                "url": "/images/bristlecone/viewer/rock-sliders.png",
-                "z_index": 28
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -401,11 +340,6 @@
           "options": [
             {
               "description": "Hard-shell rooftop tent, sleeps two. Conflicts with the maximum solar array.",
-              "layer": {
-                "alt_text": "Hard-shell rooftop tent at the rear of the roof",
-                "url": "/images/bristlecone/viewer/rooftop-tent.png",
-                "z_index": 46
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -422,11 +356,6 @@
             },
             {
               "description": "Low-profile roof rack for gear.",
-              "layer": {
-                "alt_text": "Low-profile rails running along the rear roof",
-                "url": "/images/bristlecone/viewer/roof-rack-basic.png",
-                "z_index": 40
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -452,11 +381,6 @@
           "options": [
             {
               "description": "Satin black finish over the composite shell.",
-              "layer": {
-                "alt_text": "Bristlecone body in satin black",
-                "url": "/images/bristlecone/viewer/finish-satin-black.png",
-                "z_index": 5
-              },
               "model_effect": {
                 "base_color_hex": "#1b1b1b",
                 "material_target": "body_paint",
@@ -475,11 +399,6 @@
             },
             {
               "description": "Desert tan finish over the composite shell.",
-              "layer": {
-                "alt_text": "Bristlecone body in desert tan",
-                "url": "/images/bristlecone/viewer/finish-desert-tan.png",
-                "z_index": 5
-              },
               "model_effect": {
                 "base_color_hex": "#c2a374",
                 "material_target": "body_paint",
@@ -498,11 +417,6 @@
             },
             {
               "description": "Forest green finish over the composite shell.",
-              "layer": {
-                "alt_text": "Bristlecone body in forest green",
-                "url": "/images/bristlecone/viewer/finish-forest-green.png",
-                "z_index": 5
-              },
               "model_effect": {
                 "base_color_hex": "#2f4a34",
                 "material_target": "body_paint",
@@ -553,12 +467,7 @@
         "LED perimeter lighting",
         "Underbody skid plates",
         "40 gal fresh water tank"
-      ],
-      "viewer_base": {
-        "alt_text": "Bristlecone in standard configuration, side profile",
-        "url": "/images/bristlecone/viewer/base.png",
-        "z_index": 0
-      }
+      ]
     },
     {
       "base_price_cents": 16890000,
@@ -584,7 +493,6 @@
           "options": [
             {
               "description": "Rear-wheel-drive service chassis.",
-              "layer": null,
               "model_effect": null,
               "name": "4x2 Chassis",
               "price_delta_cents": 0,
@@ -593,11 +501,6 @@
             },
             {
               "description": "Four-wheel-drive service chassis for job-site access.",
-              "layer": {
-                "alt_text": "Raised four-wheel-drive stance with all-terrain tires",
-                "url": "/images/ironwood/viewer/chassis-4x4.png",
-                "z_index": 25
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -623,7 +526,6 @@
           "options": [
             {
               "description": "Six-compartment aluminum service body.",
-              "layer": null,
               "model_effect": null,
               "name": "Standard Compartment Body",
               "price_delta_cents": 0,
@@ -632,11 +534,6 @@
             },
             {
               "description": "Ten-compartment aluminum service body with rear shelving.",
-              "layer": {
-                "alt_text": "Extended service body with additional rear compartments",
-                "url": "/images/ironwood/viewer/body-extended.png",
-                "z_index": 20
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -662,11 +559,6 @@
           "options": [
             {
               "description": "Hydraulic articulating crane mounted behind the cab.",
-              "layer": {
-                "alt_text": "Articulating crane mounted behind the cab",
-                "url": "/images/ironwood/viewer/crane-3200lb.png",
-                "z_index": 35
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -683,11 +575,6 @@
             },
             {
               "description": "1,500 lb capacity hydraulic lift gate.",
-              "layer": {
-                "alt_text": "Hydraulic lift gate folded at the rear",
-                "url": "/images/ironwood/viewer/liftgate-hydraulic.png",
-                "z_index": 34
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -713,11 +600,6 @@
           "options": [
             {
               "description": "PTO-driven 6 kW onboard generator.",
-              "layer": {
-                "alt_text": "Underbody generator enclosure",
-                "url": "/images/ironwood/viewer/generator-onboard.png",
-                "z_index": 30
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -734,7 +616,6 @@
             },
             {
               "description": "Chassis-battery-fed inverter for shop tools.",
-              "layer": null,
               "model_effect": null,
               "name": "3,000 W Inverter",
               "price_delta_cents": 210000,
@@ -752,7 +633,6 @@
           "options": [
             {
               "description": "Adjustable steel shelving across all compartments.",
-              "layer": null,
               "model_effect": null,
               "name": "Adjustable Shelving Package",
               "price_delta_cents": 175000,
@@ -761,7 +641,6 @@
             },
             {
               "description": "Locking pull-out drawer units for small parts.",
-              "layer": null,
               "model_effect": null,
               "name": "Locking Drawer Units",
               "price_delta_cents": 260000,
@@ -779,11 +658,6 @@
           "options": [
             {
               "description": "Perimeter scene lighting for night work.",
-              "layer": {
-                "alt_text": "Scene lights above the cab casting light onto the body",
-                "url": "/images/ironwood/viewer/scene-lighting.png",
-                "z_index": 42
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -800,11 +674,6 @@
             },
             {
               "description": "Solar rear-mounted arrow board for roadside work.",
-              "layer": {
-                "alt_text": "Arrow board raised at the rear of the service body",
-                "url": "/images/ironwood/viewer/arrow-board.png",
-                "z_index": 44
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -830,11 +699,6 @@
           "options": [
             {
               "description": "Fleet white finish.",
-              "layer": {
-                "alt_text": "Ironwood body in fleet white",
-                "url": "/images/ironwood/viewer/finish-fleet-white.png",
-                "z_index": 5
-              },
               "model_effect": {
                 "base_color_hex": "#f2f0ea",
                 "material_target": "body_paint",
@@ -853,11 +717,6 @@
             },
             {
               "description": "High-visibility safety orange finish.",
-              "layer": {
-                "alt_text": "Ironwood body in safety orange",
-                "url": "/images/ironwood/viewer/finish-safety-orange.png",
-                "z_index": 5
-              },
               "model_effect": {
                 "base_color_hex": "#ff6a13",
                 "material_target": "body_paint",
@@ -892,12 +751,7 @@
         "Interior LED work lighting",
         "Grounded welding receptacle",
         "Steel diamond-plate running boards"
-      ],
-      "viewer_base": {
-        "alt_text": "Ironwood in standard configuration, side profile",
-        "url": "/images/ironwood/viewer/base.png",
-        "z_index": 0
-      }
+      ]
     },
     {
       "base_price_cents": 23200000,
@@ -923,7 +777,6 @@
           "options": [
             {
               "description": "Standard crew cab configuration.",
-              "layer": null,
               "model_effect": null,
               "name": "Crew Cab",
               "price_delta_cents": 0,
@@ -932,11 +785,6 @@
             },
             {
               "description": "Extended crew cab with additional legroom.",
-              "layer": {
-                "alt_text": "Lengthened crew cab with a deeper rear door",
-                "url": "/images/sentinel/viewer/cab-crew-extended.png",
-                "z_index": 10
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -962,7 +810,6 @@
           "options": [
             {
               "description": "Walk-in module with two console stations.",
-              "layer": null,
               "model_effect": null,
               "name": "Standard Command Module",
               "price_delta_cents": 0,
@@ -971,11 +818,6 @@
             },
             {
               "description": "Walk-in module with four console stations.",
-              "layer": {
-                "alt_text": "Extended command module with a second bank of windows",
-                "url": "/images/sentinel/viewer/module-extended.png",
-                "z_index": 20
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -1001,11 +843,6 @@
           "options": [
             {
               "description": "Roof-mounted pneumatic mast for antennas and cameras.",
-              "layer": {
-                "alt_text": "Pneumatic mast extended above the command module",
-                "url": "/images/sentinel/viewer/mast-33ft.png",
-                "z_index": 46
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -1022,11 +859,6 @@
             },
             {
               "description": "Cross-banded multi-agency radio suite.",
-              "layer": {
-                "alt_text": "Antenna array along the module roof",
-                "url": "/images/sentinel/viewer/radio-suite.png",
-                "z_index": 44
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -1052,11 +884,6 @@
           "options": [
             {
               "description": "PTO-driven 10 kW onboard generator.",
-              "layer": {
-                "alt_text": "Underbody generator enclosure",
-                "url": "/images/sentinel/viewer/generator-onboard-10kw.png",
-                "z_index": 30
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -1073,7 +900,6 @@
             },
             {
               "description": "Automatic switch between shore power and generator.",
-              "layer": null,
               "model_effect": null,
               "name": "Automatic Shoreline Transfer Switch",
               "price_delta_cents": 165000,
@@ -1091,11 +917,6 @@
           "options": [
             {
               "description": "Full-length roof-mounted LED light bar.",
-              "layer": {
-                "alt_text": "Full-length light bar across the cab roof",
-                "url": "/images/sentinel/viewer/lightbar-full.png",
-                "z_index": 42
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -1112,11 +933,6 @@
             },
             {
               "description": "Perimeter-mounted scene lighting.",
-              "layer": {
-                "alt_text": "Perimeter scene lights washing the ground beside the module",
-                "url": "/images/sentinel/viewer/scene-lighting-perimeter.png",
-                "z_index": 43
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -1142,7 +958,6 @@
           "options": [
             {
               "description": "Racking for radios, batteries, and field gear.",
-              "layer": null,
               "model_effect": null,
               "name": "Equipment Racking Package",
               "price_delta_cents": 240000,
@@ -1151,11 +966,6 @@
             },
             {
               "description": "Lockable exterior compartments along both sides.",
-              "layer": {
-                "alt_text": "Lockable compartment doors along the module flank",
-                "url": "/images/sentinel/viewer/exterior-compartments.png",
-                "z_index": 28
-              },
               "model_effect": {
                 "base_color_hex": null,
                 "material_target": null,
@@ -1181,11 +991,6 @@
           "options": [
             {
               "description": "Command white finish.",
-              "layer": {
-                "alt_text": "Sentinel body in command white",
-                "url": "/images/sentinel/viewer/finish-command-white.png",
-                "z_index": 5
-              },
               "model_effect": {
                 "base_color_hex": "#eef0ee",
                 "material_target": "body_paint",
@@ -1204,11 +1009,6 @@
             },
             {
               "description": "Tactical black finish.",
-              "layer": {
-                "alt_text": "Sentinel body in tactical black",
-                "url": "/images/sentinel/viewer/finish-tactical-black.png",
-                "z_index": 5
-              },
               "model_effect": {
                 "base_color_hex": "#1b1b1b",
                 "material_target": "body_paint",
@@ -1243,12 +1043,7 @@
         "Interior command console mounts",
         "Shoreline power inlet",
         "Roof-mounted light bar"
-      ],
-      "viewer_base": {
-        "alt_text": "Sentinel in standard configuration, side profile",
-        "url": "/images/sentinel/viewer/base.png",
-        "z_index": 0
-      }
+      ]
     }
   ]
 }

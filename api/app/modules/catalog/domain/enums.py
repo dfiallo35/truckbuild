@@ -21,7 +21,6 @@ class AssetKind(StrEnum):
     hero = "hero"
     gallery = "gallery"
     thumbnail = "thumbnail"
-    layer = "layer"
 
 
 class CatalogUseCaseEnum(StrEnum):

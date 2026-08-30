@@ -21,13 +21,8 @@ from app.modules.catalog.domain.enums import AssetKind, DisplayStyle, RuleRelati
 
 
 class AssetTable(BaseTable, table=True):
-    """An image. ``platform_id`` is set for hero/gallery assets and for the platform's viewer
-    base layer; ``option_id`` for an option's thumbnail/layer -- exactly one of the two is
-    populated.
-
-    For ``layer`` assets ``sort_order`` carries the z-index in the configurator viewer
-    composite, and the platform's base layer is always 0.
-    """
+    """An image. ``platform_id`` is set for hero/gallery assets; ``option_id`` for an option's
+    thumbnail -- exactly one of the two is populated."""
 
     __tablename__ = "asset"
 

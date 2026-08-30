@@ -20,6 +20,11 @@ starts to sprawl.
 3. **Viewer** — a layered composite: a base platform image with option layer images stacked by `z-index`,
    cross-fading on change. This delivers most of the perceived value of 3D at a fraction of the cost. Every
    layer is a `next/image` with explicit dimensions; options without a layer simply contribute nothing.
+
+   > **Superseded by Stage 16/17.** This was true when written and the reasoning held for a long time —
+   > but Stages 14–17 replaced the composite with a real WebGL build view, and Stage 17 removed the
+   > layer images, the `layer` schema field, and the `AssetKind.layer` enum value entirely. See
+   > `docs/decisions.md`'s "The 3D build view" for what runs in this stage's place.
 4. **Live pricing** — mirror `price_build` in `web/src/lib/pricing.ts` for instant feedback. This mirror is
    a UX affordance only: **the server price is authoritative**, and both implementations share test fixtures
    so they cannot silently drift.

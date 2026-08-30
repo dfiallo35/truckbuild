@@ -1,6 +1,6 @@
 # Stage 17 — retire the 2D composite
 
-> **Status: not started.**
+> **Status: complete.** Checkpoint verified 2026-08-30.
 
 **Goal:** the layered-image viewer and everything that fed it come out — content, columns, DTOs, Zod
 schemas and the enum value — leaving the 3D viewer as the only build view, and the docs telling the
