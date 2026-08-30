@@ -76,6 +76,27 @@ before that point — the naming convention is what makes the two sides agree in
    should no longer be `null`, and `/configurator/<slug>` should load the 3D chunk instead of staying
    on the poster.
 
+## When there is no GLB at all
+
+No model file is in the repo, and none can be — so a fresh clone has `platform.model` null on
+every platform, the configurator stays on its poster, and `e2e/configurator.spec.ts`'s "the 3D
+canvas mounts" spec skips itself. Nothing about the 3D half is exercised, and nothing fails to
+say so.
+
+`api/tools/make_placeholder_models.py` generates a low-poly stand-in per demo platform, built to
+be correct exactly where the pipeline looks: every node named by an option's `model_effect`
+exists, the paint material is `body_paint`, and the geometry is sized to the camera framing
+`seed/catalog.yaml` pins, so a toggle moves something inside the frame rather than off-screen.
+
+```bash
+cd api && uv run python tools/make_placeholder_models.py seed/models
+```
+
+Then walk the steps above from the dry-run onward. Output is deterministic, so re-running it and
+re-syncing reports `unchanged` rather than churning a new blob. This is scaffolding for testing
+the pipeline, not a substitute for the real asset: when a modeller's GLB lands, it replaces the
+file of the same name and the tool goes back to being how you test the ingest chain without one.
+
 ## The gotcha that breaks an unrelated test
 
 **`python -m app.assets sync` writes to the same Postgres `pytest` reads.** There is no separate test
