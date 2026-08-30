@@ -116,7 +116,6 @@ class PlatformMapper(BaseMapper):
             spec_highlights=table.spec_highlights,
             standard_equipment=table.standard_equipment,
             hero_image=_asset(next((a for a in assets if a.kind == AssetKind.hero), None)),
-            viewer_base=_asset(next((a for a in assets if a.kind == AssetKind.layer), None)),
             gallery=[_asset(a) for a in assets if a.kind == AssetKind.gallery],
             model=_model(rows.model_by_platform.get(table.id)),
             option_groups=[
@@ -162,7 +161,6 @@ class PlatformMapper(BaseMapper):
             price_delta_cents=row.price_delta_cents,
             description=row.description,
             sort_order=row.sort_order,
-            layer=_asset(next((a for a in assets if a.kind == AssetKind.layer), None)),
             swatch=_asset(next((a for a in assets if a.kind == AssetKind.thumbnail), None)),
             model_effect=_model_effect(rows.effect_by_option.get(row.id)),
         )

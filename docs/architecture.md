@@ -251,11 +251,12 @@ api/
   app/
     main.py             composition root — mounts each module's router, binds every port
     seed.py             thin CLI: reads catalog.yaml, calls catalog's SeedCatalogUseCase
+    assets.py           thin CLI: validates + uploads a platform's GLB, calls catalog's SyncModelsUseCase
     core/                shared kernel, its own four layers — imports no module
       config.py          every env var declared, read by every layer, belongs to none
-      domain/            BaseEntity · IBaseRepository · IRateLimiter · BaseFilter · BaseError
+      domain/            BaseEntity · IBaseRepository · IRateLimiter · IBlobStore · BaseFilter · BaseError
       application/        BaseUseCase + CRUD subclasses · BaseService · BaseMapper
-      infrastructure/     BaseTable · BaseRepositoryPostgres · engine & session · ratelimit
+      infrastructure/     BaseTable · BaseRepositoryPostgres · engine & session · ratelimit · blob/ (local · vercel)
       presentation/       create_app · exception handlers · telemetry · query filters
     modules/
       catalog/           platforms · option groups · options · rules · assets

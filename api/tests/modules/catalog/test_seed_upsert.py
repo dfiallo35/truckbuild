@@ -49,7 +49,6 @@ def _catalog(session: Session, *, price_delta: int = 500_00) -> dict:
                 "spec_highlights": [],
                 "standard_equipment": [],
                 "hero_image": {"url": "/images/test-hero.jpg", "alt_text": "hero"},
-                "viewer_base": {"url": "/images/test-base.png", "alt_text": "base"},
                 "gallery": [],
                 "option_groups": [
                     {
@@ -139,7 +138,7 @@ def test_seeding_twice_does_not_duplicate_rows() -> None:
             second = _row_counts(session)
 
             assert slugs == [SLUG]
-            assert first == second == (1, 2, 2)
+            assert first == second == (1, 2, 1)
         finally:
             _cleanup(session)
 

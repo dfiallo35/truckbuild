@@ -7,7 +7,8 @@ The vocabulary matters — get it right once and both services agree.
 - **OptionGroup** — one step in the configurator (e.g. "Habitat", "Power System", "Recovery"). Has a
   selection mode (`single` | `multi`), a `required` flag, and a display style (`card` | `swatch` | `toggle`).
 - **Option** — a choice within a group. Has a price delta (may be `0` for included items), description,
-  thumbnail, and an optional **layer image** for the viewer.
+  an optional thumbnail (a swatch group's colour chip), and an optional **model effect** (see below) for
+  the 3D build view.
 - **OptionRule** — a relation between options: `requires` or `excludes`. This is the compatibility engine.
 - **Build** — a platform plus a set of selected option slugs. Shareable via URL and priceable.
 - **Quote** — a submitted build plus contact details, intended use, and timeline.
@@ -41,8 +42,10 @@ These are chosen to exercise the engine rather than to be exhaustive:
 
 ## The 3D build model
 
-[Stage 14](stages/14-build-model-catalog.md) adds two entities that let the catalog describe a
-platform's 3D build view alongside its existing 2D viewer composite:
+The catalog describes a platform's build view with two entities, added in
+[Stage 14](stages/14-build-model-catalog.md). They replaced a 2D layered-image composite —
+[Stage 16](stages/16-3d-viewer.md) built the WebGL viewer that reads them and
+[Stage 17](stages/17-retire-2d-composite.md) removed the composite and its `layer` assets entirely:
 
 - **BuildModel**, one per platform — the GLB behind the build view, plus how the camera should
   frame it (`camera_orbit_deg`, `camera_distance_m`, `camera_target_y_m`). The URL, content hash

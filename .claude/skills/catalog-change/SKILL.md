@@ -103,6 +103,11 @@ component renders `undefined` with no error.
    the `cache-and-revalidation` skill.
 8. **Pricing mirror** — if a price, a delta, or a `requires`/`excludes` rule changed, the shared
    fixture and both implementations need updating. See the `pricing-mirror` skill.
+9. **Model sync** — if the change added or edited an `OptionModelEffect` (`nodes`,
+   `material_target`) or a platform's `BuildModel` framing, the 3D build view does not see it until
+   `python -m app.assets sync` has run. An option with geometry that is added without a matching
+   node in the platform's GLB, or a `model_effect` shipped without ever running the sync, is a
+   half-finished catalog change — see the `model-ingest` skill.
 
 ## Verifying
 
@@ -130,9 +135,9 @@ slug resolving, and update the fixtures and cache tags in the same change.
 
 `docs/domain-model.md` is the authority. Briefly: a **Platform** is a configurable product line; an
 **OptionGroup** is one configurator step with a selection mode and display style; an **Option** is a
-choice with a price delta and an optional layer image for the viewer; an **OptionRule** is a
-`requires` or `excludes` relation between options; a **Build** is a platform plus selected slugs; a
-**Quote** is a submitted build plus contact details.
+choice with a price delta and an optional model effect (geometry or a finish) for the 3D build view;
+an **OptionRule** is a `requires` or `excludes` relation between options; a **Build** is a platform
+plus selected slugs; a **Quote** is a submitted build plus contact details.
 
 Getting this vocabulary right once is what keeps the two services agreeing. The three placeholder
 platforms (Bristlecone, Ironwood, Sentinel) and their prices are demo content awaiting real data.

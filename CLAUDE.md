@@ -49,6 +49,7 @@ Stack:
 docker compose up -d           # Postgres + API with hot reload on :8000
 docker compose exec api alembic upgrade head
 docker compose exec api python -m app.seed
+docker compose exec api python -m app.assets sync   # uploads GLBs to Blob; see model-ingest skill
 ```
 
 Postgres is published on host port **5433**, not 5432, to avoid colliding with a host Postgres. Inside the
@@ -147,7 +148,7 @@ adapter and an inner layer at once.
 adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/property-management):
 
 - `core/domain/` — `BaseEntity` (pure pydantic, integer key), `IBaseRepository`, `IRateLimiter`,
-  `BaseFilter`, `BaseError`, `UseCaseEnum`.
+  `IBlobStore`, `BaseFilter`, `BaseError`, `UseCaseEnum`.
 - `core/application/` — `BaseUseCase`, a template method driving `pre_run → validate → run →
   post_run`, plus its CRUD subclasses; `BaseService`, which wires a mapper, a filter class and a
   repository into them; `BaseMapper` (domain ↔ DTO); the DTOs, including the one error body.
@@ -170,7 +171,7 @@ reference repo — FastAPI `Depends` rather than `dependency_injector`, sync rat
   pinned on all seven, because SQLModel derives it from the class name and the rename to
   `…Table` would otherwise autogenerate as `drop_table` + `create_table`.
 - **No layer above a repository can trigger a query by reading an attribute.**
-  `PlatformRepositoryPostgres.list` reads the whole catalog in a **fixed five statements** and
+  `PlatformRepositoryPostgres.list` reads the whole catalog in a **fixed seven statements** and
   `QuoteRepositoryPostgres.list` a lead list in **two**, whatever either is asked for; the
   entities come back with their children as loaded values.
   `tests/modules/catalog/test_catalog_queries.py` seeds a fourth platform and asserts the count
@@ -253,6 +254,7 @@ leave half-finished. Claude invokes them automatically when relevant; you can al
 | `catalog-change` | Adding or editing a platform, option, price, or rule — the chain from `catalog.yaml` to a rendered page |
 | `cache-and-revalidation` | Adding a catalog read, changing cache tags, or a catalog edit not reaching the site |
 | `alembic-migration` | Any change to a module's tables — `catalog/` or `quotes/infrastructure/postgres/tables.py` |
+| `model-ingest` | Authoring, validating, uploading, or revalidating a platform's or option's 3D build asset |
 | `new-module` | Adding a whole new feature module — the twelve files and four wiring points |
 | `stage-checkpoint` | Verifying or closing out a stage, or running the CI-equivalent sweep |
 | `open-pr` | Opening or inspecting a PR — the last step of any task that produces committed work |

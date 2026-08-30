@@ -122,8 +122,8 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
         ).all()
         option_ids = [option.id for option in options]
 
-        # Both halves of the asset table in one pass: a platform's hero, gallery and viewer base
-        # hang off `platform_id`, an option's layer and swatch off `option_id`.
+        # Both halves of the asset table in one pass: a platform's hero and gallery hang off
+        # `platform_id`, an option's swatch off `option_id`.
         assets = self.session.exec(
             select(AssetTable)
             .where(
@@ -270,17 +270,6 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
             asset.alt_text = image["alt_text"]
             self.session.add(asset)
 
-        # Layer 0 of the configurator viewer composite. Option layers carry the same kind but
-        # hang off an option instead, at their own z-index.
-        viewer_base = data.get("viewer_base")
-        if viewer_base is not None:
-            asset = by_key.pop((AssetKind.layer, 0), None) or AssetTable(
-                platform_id=platform.id, kind=AssetKind.layer, sort_order=0, url="", alt_text=""
-            )
-            asset.url = viewer_base["url"]
-            asset.alt_text = viewer_base["alt_text"]
-            self.session.add(asset)
-
         for stale in by_key.values():
             self.session.delete(stale)
 
@@ -343,24 +332,12 @@ class PlatformRepositoryPostgres(BaseRepositoryPostgres, IPlatformRepository):
         return option
 
     def _upsert_option_assets(self, option: OptionTable, data: dict) -> None:
-        """An option carries at most one ``layer`` (its contribution to the viewer composite,
-        with ``sort_order`` holding the z-index) and one ``thumbnail`` (the chip a swatch group
-        renders). Either may be absent -- an option without a layer simply contributes nothing to
-        the viewer."""
+        """An option carries at most one ``thumbnail`` (the chip a swatch group renders); it may
+        be absent."""
         existing = self.session.exec(
             select(AssetTable).where(AssetTable.option_id == option.id)
         ).all()
         by_kind = {asset.kind: asset for asset in existing}
-
-        layer = data.get("layer")
-        if layer is not None:
-            asset = by_kind.pop(AssetKind.layer, None) or AssetTable(
-                option_id=option.id, kind=AssetKind.layer, url="", alt_text=""
-            )
-            asset.url = layer["url"]
-            asset.alt_text = layer["alt_text"]
-            asset.sort_order = layer["z"]
-            self.session.add(asset)
 
         swatch = data.get("swatch")
         if swatch is not None:

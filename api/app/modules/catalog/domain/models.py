@@ -17,9 +17,7 @@ from app.modules.catalog.domain.enums import AssetKind, DisplayStyle, RuleRelati
 
 
 class Asset(BaseEntity):
-    """An image. ``sort_order`` carries the gallery position for ``gallery`` assets and the
-    z-index in the configurator viewer composite for ``layer`` ones; the platform's own base
-    layer is always 0.
+    """An image. ``sort_order`` carries the gallery position for ``gallery`` assets.
 
     ``platform_id`` / ``option_id`` -- which of the two owns the row -- are storage wiring and
     stay on the table. Here an asset is reached through the thing it belongs to.
@@ -35,8 +33,7 @@ class OptionModelEffect(BaseEntity):
     """How selecting an option changes the 3D build model. ``nodes`` reveals a mesh already
     present in the platform's GLB -- geometry, like a crew cab or a rooftop tent.
     ``material_target`` plus a colour recolors one instead of adding a mesh -- a finish, like
-    satin black or desert tan. An option may use either, both, or neither, exactly as it may
-    carry no ``layer`` today.
+    satin black or desert tan. An option may use either, both, or neither.
     See docs/stages/14-build-model-catalog.md for why one mechanism cannot serve both.
     """
 
@@ -58,7 +55,6 @@ class Option(BaseEntity):
     description: str = ""
     sort_order: int = 0
 
-    layer: Asset | None = None
     swatch: Asset | None = None
     model_effect: OptionModelEffect | None = None
 
@@ -125,7 +121,6 @@ class Platform(BaseEntity):
     standard_equipment: list[str] = []
 
     hero_image: Asset | None = None
-    viewer_base: Asset | None = None
     gallery: list[Asset] = []
     model: BuildModel | None = None
 

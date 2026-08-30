@@ -90,7 +90,7 @@ def _add_a_fourth_platform(session: Session) -> None:
 
     session.add(
         AssetTable(
-            option_id=first.id, kind=AssetKind.layer, url="/y.png", alt_text="y", sort_order=10
+            option_id=first.id, kind=AssetKind.thumbnail, url="/y.png", alt_text="y", sort_order=10
         )
     )
     session.add(

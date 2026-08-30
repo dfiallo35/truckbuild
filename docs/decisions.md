@@ -125,9 +125,26 @@ until it matters:
 - **Photography is the critical path for the aesthetic.** The reference site works because the imagery
   carries it. A dark cinematic layout with weak photos reads worse than a plain one — treat swapping in real
   vehicle photography as scheduled work, not an afterthought.
+- **A visitor with no WebGL gets no build view.** The 2D layer composite that used to cover this case is
+  gone as of Stage 17. `platform.hero_image` serves as the `<canvas>`'s poster while the GLB streams in
+  *and* as the terminal state when WebGL is unavailable or the model fails to load, with one line of
+  explanation — a static image that does not react to option toggles. Chosen deliberately over
+  maintaining two build views; see `docs/stages/16-3d-viewer.md`'s "The no-WebGL position, stated
+  plainly" for the reasoning and its stated recovery path.
+
+## The 3D build view (Stages 14–17)
+
+What replaced the deferred "3D/WebGL viewer" below: Postgres holds a `BuildModel` reference — a URL,
+a content hash, and a size — while the GLB bytes themselves live in Vercel Blob. The split exists
+because **a Vercel function caps request bodies at 4.5 MB** and these models run 5–50 MB, which rules
+out an upload endpoint outright; the bytes reach Blob through `python -m app.assets sync`, run by an
+operator, never through a request. Blob paths are content-addressed (the hash is part of the path),
+which is what makes `cacheControlMaxAge: immutable` safe on them. The configurator's
+`/configurator/[slug]` renders that model in WebGL via a lazily loaded three.js chunk; there is no
+layer-composite fallback any more (see the accepted risk above).
 
 ## Explicitly deferred
 
 User accounts and saved builds, financing calculators, dealer/inventory management, real-time build-slot
-availability, a 3D/WebGL viewer, i18n, and a CMS. The catalog seed file plus the revalidation webhook is the
-seam a CMS would later plug into.
+availability, i18n, and a CMS. The catalog seed file plus the revalidation webhook is the seam a CMS
+would later plug into.

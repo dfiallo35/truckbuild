@@ -43,7 +43,6 @@ const catalog = parseYaml(readFileSync(`${REPO_ROOT}/api/seed/catalog.yaml`, "ut
         name: string;
         price_delta_cents: number;
         description?: string;
-        layer?: { url: string; alt_text: string; z: number };
         swatch?: { url: string; alt_text: string };
       }[];
     }[];
@@ -97,7 +96,6 @@ export function apiPlatform(slug: string): Platform {
     spec_highlights: [],
     standard_equipment: [],
     hero_image: null,
-    viewer_base: { url: `/images/${slug}/viewer/base.png`, alt_text: slug, z_index: 0 },
     gallery: [],
     model: null,
     option_groups: platform.option_groups.map((group) => ({
@@ -111,9 +109,6 @@ export function apiPlatform(slug: string): Platform {
         name: option.name,
         price_delta_cents: option.price_delta_cents,
         description: option.description ?? "",
-        layer: option.layer
-          ? { url: option.layer.url, alt_text: option.layer.alt_text, z_index: option.layer.z }
-          : null,
         swatch: option.swatch
           ? { kind: "thumbnail" as const, url: option.swatch.url, alt_text: option.swatch.alt_text }
           : null,

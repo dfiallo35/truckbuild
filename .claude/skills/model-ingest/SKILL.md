@@ -1,0 +1,94 @@
+---
+name: model-ingest
+description: Getting a platform's 3D build model — or a new option's geometry/finish inside it — from a modeller's GLB file into the running site. Use this whenever a platform's BuildModel framing changes, whenever an option's OptionModelEffect (nodes or material_target) is added or edited in seed/catalog.yaml, whenever someone asks to add or update a 3D model, and whenever the configurator shows a poster but never mounts the viewer for a platform that should have one. Since Stage 17 removed the 2D layer composite, the 3D build view is the only build view, and an option with geometry that never reaches a synced model is a customer-visible gap, not a cosmetic one.
+---
+
+# Model ingest
+
+## The shape of the problem
+
+`api/seed/catalog.yaml` is where a `BuildModel`'s camera framing and an option's `OptionModelEffect`
+are declared — that half is content, versioned like everything else in the catalog. But the GLB
+itself is a large binary (5–50 MB) that does not belong in git and cannot go through a normal HTTP
+request: **a Vercel function caps a request body at 4.5 MB**, which is why there is no upload
+endpoint and never will be. See `docs/stages/15-blob-storage-ingest.md`.
+
+So the model reaches the site through a second, parallel pipeline to the one `catalog-change`
+describes, with its own CLI:
+
+```
+a modeller authors/edits a GLB, naming nodes and materials to match seed/catalog.yaml
+        ↓  api/seed/models/<platform-slug>.glb           gitignored, operator's machine only
+        ↓  app/assets.py::read_glb                        parses node + material names, no scene load
+        ↓  SyncModelsUseCase.validate                      every OptionModelEffect.nodes / .material_target
+                                                             must exist in the GLB, or the sync refuses
+        ↓  SyncModelsUseCase.run → IBlobStore.put           content-addressed upload to Vercel Blob
+        ↓  PlatformRepositoryPostgres.write_model_reference url, content_hash, byte_size onto BuildModel
+        ↓  WebhookCacheInvalidator                          POST /api/revalidate, same webhook catalog-change uses
+rendered /configurator/[slug]                               BuildViewer3D mounts once platform.model is non-null
+```
+
+Skipping the last three steps is the normal failure here: the catalog change looks complete because
+`seed/catalog.yaml` and Postgres agree on the *framing*, but the viewer never mounts because
+`platform.model` stays `null` until a model's bytes have actually been uploaded (see
+`PlatformMapper._model`'s deliberate `None`-on-empty-`url` behavior).
+
+## The node-naming contract
+
+`docs/domain-model.md` pins the convention a modeller has to follow:
+**`<platform>_<group>_<option>`**, using each entity's own slug — e.g.
+`bristlecone_recovery-protection_winch-12000`. This is not enforced by any schema; it is a contract
+with whoever authors the file. What *is* enforced is narrower and happens at sync time: every node
+named in an option's `model_effect.nodes` and every `material_target` must exist in the GLB, or
+`SyncModelsUseCase.validate` refuses the whole sync rather than uploading a model that would silently
+reveal nothing for that option. A node absent from the file is not an error the application can catch
+before that point — the naming convention is what makes the two sides agree in the first place.
+
+## Working a model through
+
+1. **Author or receive the GLB**, with node and material names following the convention above for
+   every option that has a `model_effect` in `seed/catalog.yaml`. Cross-check spelling against the
+   seed file — a mismatch here fails validation, not gracefully at runtime.
+2. **Place it** at `api/seed/models/<platform-slug>.glb`. The filename's stem is read as the
+   platform slug; it has to match one already seeded.
+3. **Declare or confirm the framing** in `seed/catalog.yaml`'s `model:` block for the platform —
+   `camera_orbit_deg`, `camera_distance_m`, `camera_target_y_m`. Content, not code: the right orbit
+   for a 24-foot expedition truck is not the right orbit for a service body. Re-seed
+   (`python -m app.seed`) if this changed.
+4. **Dry-run first**:
+   ```bash
+   docker compose exec api python -m app.assets sync --dry-run
+   ```
+   This validates every `.glb` in `seed/models/` against the catalog's model effects and reports
+   what would upload, writing nothing. A `ModelTooLargeError` (over `model_max_bytes`, 32 MiB
+   default) or a missing node/material surfaces here, not after an upload.
+5. **Sync for real**:
+   ```bash
+   docker compose exec api python -m app.assets sync
+   ```
+   Needs `BLOB_READ_WRITE_TOKEN` in the environment reaching the container; without it, `_blob_store`
+   falls back to `LocalBlobStore` (fine for local iteration, not for anything meant to reach
+   production). This uploads unchanged-hash files idempotently — a re-run after a no-op edit does
+   not re-upload — writes `url` / `content_hash` / `byte_size` onto the platform's `BuildModelTable`
+   row, and revalidates the same cache tags `cache-and-revalidation` describes, unless
+   `--no-revalidate` is passed (e.g. in CI, where there is no web app to tell).
+6. **Confirm the viewer actually mounts** — `curl -s localhost:8000/v1/platforms/<slug> | jq '.model'`
+   should no longer be `null`, and `/configurator/<slug>` should load the 3D chunk instead of staying
+   on the poster.
+
+## The gotcha that breaks an unrelated test
+
+**`python -m app.assets sync` writes to the same Postgres `pytest` reads.** There is no separate test
+database. `tests/modules/catalog/test_catalog_api.py` asserts a never-synced platform's `model` is
+`None` — syncing a model locally, including a synthetic GLB for manual viewer testing, breaks that
+test with no code change in sight until the `buildmodel` row is reverted (`url`, `content_hash` back
+to `''`, `byte_size` to `0`) and anything written under `web/public/models/` is removed. CI never runs
+`assets sync` at all — only `app.seed` — so every platform's `model` is `null` there too; code that
+assumes a model exists needs to degrade to that state, not just to the happy path.
+
+## Related
+
+`catalog-change` — the parallel content chain for everything that is *not* the model's bytes; a
+`model_effect` addition is a step in that chain that ends here.
+`alembic-migration` — only relevant if `BuildModelTable` or `OptionModelEffectTable`'s shape changes,
+not for a routine model swap.

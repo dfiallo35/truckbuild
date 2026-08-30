@@ -21,15 +21,6 @@ class AssetOutput(BaseOutput):
     alt_text: str
 
 
-class LayerOutput(BaseOutput):
-    """One image in the configurator viewer composite. ``z_index`` is what stacks it; the
-    platform's own base layer is always 0."""
-
-    url: str
-    alt_text: str
-    z_index: int
-
-
 class OptionModelEffectOutput(BaseOutput):
     """How selecting the option changes the 3D build model. ``nodes`` reveals geometry;
     ``material_target`` plus a colour recolors a material -- an option may carry either, both, or
@@ -47,7 +38,6 @@ class OptionOutput(BaseOutput):
     name: str
     price_delta_cents: int
     description: str
-    layer: LayerOutput | None = None
     swatch: AssetOutput | None = None
     model_effect: OptionModelEffectOutput | None = None
 
@@ -87,7 +77,6 @@ class PlatformOutput(BaseOutput):
     spec_highlights: list[str]
     standard_equipment: list[str]
     hero_image: AssetOutput | None
-    viewer_base: LayerOutput | None
     gallery: list[AssetOutput]
     model: BuildModelOutput | None
     option_groups: list[OptionGroupOutput]
