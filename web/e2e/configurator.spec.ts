@@ -192,12 +192,68 @@ test.describe("configurator", () => {
     await expect(readout).toHaveAttribute("role", "progressbar");
     await expect(readout).toHaveAccessibleName(/preparing viewer|loading 3d model/i);
 
+    // And the poster is not being held up behind it. Sampled once, deliberately, rather than
+    // through a retrying matcher: the GLB is only held for three seconds, and a matcher that
+    // polls for five outlives the load and goes green against a build that *was* showing the
+    // photo, simply because the model arrived mid-poll. `toBeVisible` is no use either -- an
+    // `opacity-0` image still has a box and still passes it -- so opacity is read directly, at a
+    // moment the readout being on screen proves is still mid-load.
+    const posterOpacity = await page
+      .locator('[data-testid="build-viewer"] img')
+      .evaluate((el) => getComputedStyle(el).opacity);
+    expect(posterOpacity, "the hero photo was held up behind the loading readout").toBe("0");
+
     // And it is genuinely transient: gone once the canvas has painted, leaving no furniture
     // behind over the build.
     await expect(page.locator('[data-testid="build-viewer"] canvas')).toBeVisible({
       timeout: 30_000,
     });
     await expect(readout).toBeHidden();
+  });
+
+  test("the model still renders after leaving the configurator and coming back", async ({
+    page,
+  }) => {
+    // The regression: a canvas that has had `forceContextLoss()` called on it can never be given
+    // another context, and React hands back the same element when this component remounts in the
+    // same position. So the second visit used to build its scene on a dead canvas, throw, and
+    // tell a browser that had just rendered the model that 3D was unavailable to it -- reliably,
+    // on every second visit. One round trip is therefore enough to catch it coming back.
+    const canvas = page.locator('[data-testid="build-viewer"] canvas');
+    const readout = page.getByTestId("build-viewer-loading");
+    const unavailable = page.getByText(/3D preview isn't available/i);
+
+    // Every navigation here is client-side, and that is the whole point: `page.goto` tears the
+    // document down and hands back a brand-new canvas, so a spec written with it passes against
+    // the broken build. Only a visitor moving within the app -- link in, Back out, link in again
+    // -- reaches the second mount that reuses the first one's element.
+    await page.goto("/builds/bristlecone");
+    const enterConfigurator = async () => {
+      await page
+        .getByRole("link", { name: /Start customizing/i })
+        .first()
+        .click();
+      await expect(page).toHaveURL(/\/configurator\/bristlecone/);
+    };
+
+    await enterConfigurator();
+    const mounted = await canvas
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
+    test.skip(!mounted, "no platform has a synced 3D model in this environment");
+    await expect(readout).toBeHidden({ timeout: 30_000 });
+
+    await page.goBack();
+    await expect(page).toHaveURL(/\/builds\/bristlecone/);
+    await enterConfigurator();
+
+    // On the failure this guards, `unavailable` appears within a frame or two of the mount and
+    // the canvas unmounts with it, so both halves are real assertions rather than one restating
+    // the other.
+    await expect(readout).toBeHidden({ timeout: 30_000 });
+    await expect(unavailable).toHaveCount(0);
+    await expect(canvas).toBeVisible();
   });
 });
 

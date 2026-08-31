@@ -13,18 +13,22 @@ import { BuildViewerLoading } from "./BuildViewerLoading";
 const BuildViewer3D = dynamic(() => import("./BuildViewer3D"), { ssr: false });
 
 /**
- * A thin shell around the real work in `BuildViewer3D`: `platform.hero_image` is the poster,
- * shown immediately and while the GLB streams in, and stays the terminal state on a device with
- * no WebGL or a model that failed to load -- see the "no-WebGL position" in
- * `docs/stages/16-3d-viewer.md`. `BuildViewer3D` is a lazily loaded chunk (three.js is 130-160
- * KiB gzipped on its own) mounted only once this shell knows there is a model to show and a
- * context to render it in, so a platform mid-photoshoot with no synced model costs nothing
- * beyond the poster it would have shown anyway.
+ * A thin shell around the real work in `BuildViewer3D`. `BuildViewer3D` is a lazily loaded
+ * chunk (three.js is 130-160 KiB gzipped on its own) mounted only once this shell knows there
+ * is a model to show and a context to render it in, so a platform mid-photoshoot with no synced
+ * model costs nothing beyond the poster it would have shown anyway.
  *
- * The stretch between "there is a model" and "the first frame rendered" covers two downloads --
- * the three.js chunk, then the GLB -- and on a phone that is long enough that a still photo
- * with nothing happening reads as a broken page. `BuildViewerLoading` narrates it, and unmounts
- * the moment the canvas paints.
+ * `platform.hero_image` is that poster, and it is shown in exactly two situations: a platform
+ * with no model at all, and a browser that turned out not to be able to render one -- the
+ * "no-WebGL position" in `docs/stages/16-3d-viewer.md`. It is deliberately *not* shown while the
+ * model loads. The stretch between "there is a model" and "the first frame rendered" covers two
+ * downloads, the three.js chunk and then the GLB, and holding a photograph across it promises a
+ * finished picture that is about to be replaced by a different one. `BuildViewerLoading`
+ * narrates that stretch instead, over the empty frame the build is about to occupy, and gives
+ * way the moment the canvas paints.
+ *
+ * Because the decision keys off `platform.model` rather than the stage, a platform with a model
+ * never flashes its photograph on the first paint on the way to the viewer.
  *
  * `data-testid="build-viewer"` and the `role="img"` wrapper are load-bearing:
  * `e2e/configurator.spec.ts` and `e2e/a11y.spec.ts` both address the viewer by them.
@@ -62,6 +66,7 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
   }, []);
 
   const mount3D = stage === "loading" || stage === "ready";
+  const showPoster = !platform.model || stage === "unavailable";
 
   return (
     <div
@@ -78,10 +83,13 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
             src={platform.hero_image.url}
             alt=""
             fill
-            priority
+            // Preloaded only where it is the picture of record. On a platform with a model the
+            // photo is a fallback that will probably never be shown, and racing it against the
+            // GLB would slow down the thing the visitor is actually waiting for.
+            priority={showPoster}
             sizes="(min-width: 768px) 60vw, 100vw"
             className={`object-contain transition-opacity duration-500 ease-out motion-reduce:transition-none ${
-              stage === "ready" ? "opacity-0" : "opacity-100"
+              showPoster ? "opacity-100" : "opacity-0"
             }`}
           />
         ) : null}

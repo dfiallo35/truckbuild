@@ -21,6 +21,16 @@ import {
  * scene, a second calls `applySelection` whenever the build changes, and a `ResizeObserver`
  * keeps the drawing buffer matched to the box the flex layout gives the canvas.
  *
+ * The canvas is created in the effect rather than rendered as JSX, and that is load-bearing
+ * rather than a style. Tearing a scene down ends with `forceContextLoss()`, and a canvas
+ * element that has lost its context can never be given another one -- `getContext` keeps
+ * handing back the dead one. React reuses the host nodes it rendered last time when a component
+ * remounts in the same position, which is what a visitor does by leaving the configurator and
+ * coming back, so a JSX canvas came back poisoned on every second visit: three.js threw, the
+ * shell caught it, and a working browser was told 3D was unavailable to it. Owning the element
+ * here means each scene gets a canvas of its own and disposal only ever poisons one that is
+ * already on its way out.
+ *
  * Default export deliberately: `next/dynamic(() => import("./BuildViewer3D"))` without a
  * `.then()` unwrapping a named export is what the bundler reliably treats as a real
  * code-split boundary -- with a named export it silently pulled three.js into the
@@ -39,7 +49,7 @@ export default function BuildViewer3D({
   onProgress: (loaded: number, total: number) => void;
   onError: (error: unknown) => void;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const hostRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<ViewerHandle | null>(null);
 
   const model: ViewerModel | null = useMemo(() => {
@@ -73,8 +83,14 @@ export default function BuildViewer3D({
   });
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !model) return;
+    const host = hostRef.current;
+    if (!host || !model) return;
+
+    const canvas = document.createElement("canvas");
+    canvas.tabIndex = 0;
+    canvas.className =
+      "focus-visible:outline-accent block h-full w-full touch-none -outline-offset-4 focus-visible:outline-2";
+    host.appendChild(canvas);
 
     let cancelled = false;
     createScene(canvas, model, {
@@ -96,6 +112,7 @@ export default function BuildViewer3D({
       cancelled = true;
       handleRef.current?.dispose();
       handleRef.current = null;
+      canvas.remove();
     };
     // `selected` deliberately excluded: the mount effect applies the initial selection itself,
     // and every later change is handled by the effect below without tearing the scene down.
@@ -106,19 +123,15 @@ export default function BuildViewer3D({
     handleRef.current?.applySelection(selected);
   }, [selected]);
 
+  // The host is observed rather than the canvas: it outlives every scene, so the observer is
+  // set up once, and the canvas fills it exactly.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const host = hostRef.current;
+    if (!host) return;
     const observer = new ResizeObserver(() => handleRef.current?.resize());
-    observer.observe(canvas);
+    observer.observe(host);
     return () => observer.disconnect();
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      tabIndex={0}
-      className="focus-visible:outline-accent absolute inset-0 h-full w-full touch-none -outline-offset-4 focus-visible:outline-2"
-    />
-  );
+  return <div ref={hostRef} className="absolute inset-0" />;
 }
