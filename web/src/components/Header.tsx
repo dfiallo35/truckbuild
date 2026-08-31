@@ -9,7 +9,12 @@ import { PRIMARY_NAV, SITE_NAME } from "@/lib/site";
 const SCROLL_THRESHOLD = 24;
 
 /**
- * Transparent over hero imagery, gains a solid background once the page scrolls past the hero.
+ * Scrimmed over hero imagery, gains a solid background once the page scrolls past the hero. The
+ * unscrolled state is a top-down canvas gradient rather than fully transparent: `text-ink-muted`
+ * nav links are mid-grey and go unreadable over a light-bodied truck, and a hero photo cannot be
+ * assumed dark at the top edge. 90/55/0 is the lightest gradient that holds `text-ink-muted`
+ * at 4.97:1 over the homepage hero's brightest band -- WCAG AA for 12px text, which the fully
+ * transparent header missed at 2.50:1.
  * Fixed/overlaid by design -- pages that open on a hero should size that hero to clear the
  * header height rather than relying on layout padding here.
  */
@@ -38,7 +43,7 @@ export function Header() {
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
         scrolled || mobileNavOpen
           ? "border-border bg-canvas/90 border-b backdrop-blur-sm"
-          : "border-b border-transparent bg-transparent"
+          : "from-canvas/90 via-canvas/55 border-b border-transparent bg-linear-to-b to-transparent"
       }`}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 md:px-10">
