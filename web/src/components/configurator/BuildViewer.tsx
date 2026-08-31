@@ -2,11 +2,13 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Platform } from "@/lib/contract";
 import { allOptions } from "@/lib/build";
 import { isWebglAvailable } from "@/lib/viewer/capabilities";
+import { readoutsMatch, type LoadProgress } from "@/lib/viewer/progress";
+import { BuildViewerLoading } from "./BuildViewerLoading";
 
 const BuildViewer3D = dynamic(() => import("./BuildViewer3D"), { ssr: false });
 
@@ -19,11 +21,17 @@ const BuildViewer3D = dynamic(() => import("./BuildViewer3D"), { ssr: false });
  * context to render it in, so a platform mid-photoshoot with no synced model costs nothing
  * beyond the poster it would have shown anyway.
  *
+ * The stretch between "there is a model" and "the first frame rendered" covers two downloads --
+ * the three.js chunk, then the GLB -- and on a phone that is long enough that a still photo
+ * with nothing happening reads as a broken page. `BuildViewerLoading` narrates it, and unmounts
+ * the moment the canvas paints.
+ *
  * `data-testid="build-viewer"` and the `role="img"` wrapper are load-bearing:
  * `e2e/configurator.spec.ts` and `e2e/a11y.spec.ts` both address the viewer by them.
  */
 export function BuildViewer({ platform, selected }: { platform: Platform; selected: string[] }) {
   const [stage, setStage] = useState<"poster" | "loading" | "ready" | "unavailable">("poster");
+  const [progress, setProgress] = useState<LoadProgress | null>(null);
 
   // Deciding whether WebGL exists and mounting the 3D chunk are both client-only, so the first
   // render -- server and client alike -- is always the poster. That is what keeps this an
@@ -43,6 +51,15 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
       .map((option) => option.name);
     return `${platform.name}, configured with ${names.join(", ")}.`;
   }, [selected, platform]);
+
+  // `onProgress` fires once per network chunk. Keeping the previous object whenever the readout
+  // would look the same turns hundreds of renders into roughly one per percentage point.
+  const handleProgress = useCallback((loaded: number, total: number) => {
+    setProgress((current) => {
+      const next = { loaded, total };
+      return readoutsMatch(current, next) ? current : next;
+    });
+  }, []);
 
   const mount3D = stage === "loading" || stage === "ready";
 
@@ -74,6 +91,7 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
             platform={platform}
             selected={selected}
             onFirstFrame={() => setStage("ready")}
+            onProgress={handleProgress}
             onError={() => setStage("unavailable")}
           />
         ) : null}
@@ -85,6 +103,8 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
           </p>
         ) : null}
       </div>
+
+      {stage === "loading" ? <BuildViewerLoading progress={progress} /> : null}
 
       <p className="font-data text-ink-faint absolute bottom-3 left-1/2 hidden -translate-x-1/2 text-[0.625rem] tracking-[0.2em] whitespace-nowrap uppercase sm:block">
         Illustrative render — final build may vary

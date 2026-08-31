@@ -59,3 +59,38 @@ body {
   color: var(--color-ink);
   font-family: var(--font-body);
 }
+
+/*
+ * The build viewer's loading readout (`BuildViewerLoading`).
+ *
+ * `viewer-readout-in` holds at zero opacity for its first 40% -- roughly 240ms -- so a model
+ * that arrives from cache swaps poster to canvas without a loader flashing in between. Only a
+ * load slow enough to be worth explaining ever becomes visible.
+ *
+ * `viewer-readout-sweep` is the indeterminate state, for a GLB whose response carries no
+ * computable length. The fill is 30% of the track, so 333% is exactly the distance from just
+ * off the left edge to just off the right.
+ *
+ * It has to be timed `linear`. At both ends of that travel the segment is exactly tangent to a
+ * track that clips it, so any easing that slows down there parks an invisible bar outside the
+ * frame for a good fraction of every cycle -- which reads as a stalled download rather than an
+ * unmeasurable one. A constant sweep is only tangent instantaneously.
+ */
+@keyframes viewer-readout-in {
+  0%,
+  40% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes viewer-readout-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(333%);
+  }
+}

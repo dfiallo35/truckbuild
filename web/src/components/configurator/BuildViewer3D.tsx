@@ -30,11 +30,13 @@ export default function BuildViewer3D({
   platform,
   selected,
   onFirstFrame,
+  onProgress,
   onError,
 }: {
   platform: Platform;
   selected: string[];
   onFirstFrame: () => void;
+  onProgress: (loaded: number, total: number) => void;
   onError: (error: unknown) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -62,12 +64,12 @@ export default function BuildViewer3D({
     };
   }, [platform]);
 
-  // onFirstFrame/onError are passed fresh every render from BuildViewer; only `model` should
-  // ever re-create the scene, so the latest callbacks are read through a ref rather than
-  // joining the effect's dependency array.
-  const callbacksRef = useRef({ onFirstFrame, onError });
+  // The callbacks are passed fresh every render from BuildViewer; only `model` should ever
+  // re-create the scene, so the latest ones are read through a ref rather than joining the
+  // effect's dependency array.
+  const callbacksRef = useRef({ onFirstFrame, onProgress, onError });
   useEffect(() => {
-    callbacksRef.current = { onFirstFrame, onError };
+    callbacksRef.current = { onFirstFrame, onProgress, onError };
   });
 
   useEffect(() => {
@@ -77,6 +79,7 @@ export default function BuildViewer3D({
     let cancelled = false;
     createScene(canvas, model, {
       onFirstFrame: () => callbacksRef.current.onFirstFrame(),
+      onProgress: (loaded, total) => callbacksRef.current.onProgress(loaded, total),
       onError: (error) => callbacksRef.current.onError(error),
     })
       .then((handle) => {

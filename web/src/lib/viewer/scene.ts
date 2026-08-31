@@ -95,7 +95,11 @@ function readCssColor(name: string, fallback: string): THREE.Color {
 export async function createScene(
   canvas: HTMLCanvasElement,
   model: ViewerModel,
-  callbacks: { onFirstFrame?: () => void; onError?: (error: unknown) => void } = {},
+  callbacks: {
+    onFirstFrame?: () => void;
+    onError?: (error: unknown) => void;
+    onProgress?: (loaded: number, total: number) => void;
+  } = {},
 ): Promise<ViewerHandle> {
   const reducedMotion =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -192,7 +196,11 @@ export async function createScene(
 
   let gltf;
   try {
-    gltf = await new GLTFLoader().loadAsync(model.url);
+    // `total` is only meaningful when the response declared a length; a `Content-Encoding` on
+    // the GLB makes it 0, which the readout renders as an indeterminate bar rather than 0%.
+    gltf = await new GLTFLoader().loadAsync(model.url, (event) =>
+      callbacks.onProgress?.(event.loaded, event.lengthComputable ? event.total : 0),
+    );
   } catch (error) {
     canvas.removeEventListener("webglcontextlost", onContextLost);
     pmrem.dispose();

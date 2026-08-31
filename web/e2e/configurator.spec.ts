@@ -164,6 +164,41 @@ test.describe("configurator", () => {
     await expect(canvas).toBeVisible();
     await expect(page).toHaveURL(/\/configurator\/bristlecone/);
   });
+
+  test("the loading readout narrates the model download, then gets out of the way", async ({
+    page,
+  }) => {
+    // The readout is invisible on a fast connection by design -- it holds at zero opacity for
+    // its first 240ms so a cached model never flashes one. Holding the GLB back is therefore
+    // the only way to see it at all, and the only way this stays a regression test rather than
+    // a coin toss. Same skip as the spec above: CI never syncs a model, so there is no GLB
+    // request to delay there.
+    await page.route("**/*.glb", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 3_000));
+      await route.continue();
+    });
+    await page.goto("/configurator/bristlecone");
+
+    const readout = page.getByTestId("build-viewer-loading");
+    const appeared = await readout
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
+    test.skip(!appeared, "no platform has a synced 3D model in this environment");
+
+    // Named for a screen reader, and reporting a phase rather than a generic spinner. Which of
+    // the two phases is on screen depends on how fast the viewer chunk arrived, so both are
+    // accepted -- what matters is that it says which one it is.
+    await expect(readout).toHaveAttribute("role", "progressbar");
+    await expect(readout).toHaveAccessibleName(/preparing viewer|loading 3d model/i);
+
+    // And it is genuinely transient: gone once the canvas has painted, leaving no furniture
+    // behind over the build.
+    await expect(page.locator('[data-testid="build-viewer"] canvas')).toBeVisible({
+      timeout: 30_000,
+    });
+    await expect(readout).toBeHidden();
+  });
 });
 
 test.describe("responsive layout", () => {
