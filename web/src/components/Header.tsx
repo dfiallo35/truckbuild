@@ -15,6 +15,11 @@ const SCROLL_THRESHOLD = 24;
  * assumed dark at the top edge. 90/55/0 is the lightest gradient that holds `text-ink-muted`
  * at 4.97:1 over the homepage hero's brightest band -- WCAG AA for 12px text, which the fully
  * transparent header missed at 2.50:1.
+ * The gradient lives on an overlay taller than the header itself (h-32 against a 64px header),
+ * not on the header's own background -- a background gradient is clipped to its box, so it would
+ * reach 0% opacity exactly at the header's bottom edge and read as a hard line against the hero
+ * image. Stretched over double the height, the header's own band never drops below the 55% "via"
+ * stop, and the fade completes unnoticed further down into the hero image instead of at the edge.
  * Fixed/overlaid by design -- pages that open on a hero should size that hero to clear the
  * header height rather than relying on layout padding here.
  */
@@ -38,14 +43,22 @@ export function Header() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [mobileNavOpen]);
 
+  const overHero = !scrolled && !mobileNavOpen;
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
         scrolled || mobileNavOpen
           ? "border-border bg-canvas/90 border-b backdrop-blur-sm"
-          : "from-canvas/90 via-canvas/55 border-b border-transparent bg-linear-to-b to-transparent"
+          : "border-b border-transparent bg-transparent"
       }`}
     >
+      {overHero ? (
+        <div
+          aria-hidden
+          className="from-canvas/90 via-canvas/55 pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 bg-linear-to-b to-transparent"
+        />
+      ) : null}
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 md:px-10">
         <Link href="/" className="font-display text-ink text-lg tracking-widest uppercase">
           {SITE_NAME}
