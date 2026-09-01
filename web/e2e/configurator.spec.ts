@@ -137,7 +137,7 @@ test.describe("configurator", () => {
     page,
   }) => {
     // Requires a platform with a synced model (Stage 15's `python -m app.assets sync`, run by
-    // an operator against a real GLB -- see docs/stages/15-blob-storage-ingest.md). CI seeds
+    // an operator against a real GLB -- see Stage 15 of the archived development plan (Notion)). CI seeds
     // the catalog but never runs that sync, so `platform.model` is null there and the viewer
     // stays on its poster forever, which is the correct behaviour, not a bug this spec should
     // fail on. Skip rather than assert in that case; the WebGL path itself is covered by

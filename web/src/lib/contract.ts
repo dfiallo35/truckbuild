@@ -19,7 +19,7 @@ const assetSchema = z.object({
 
 /**
  * How selecting the option changes the 3D build model -- `nodes` for geometry, `material_target`
- * plus a colour for a finish. See docs/stages/14-build-model-catalog.md.
+ * plus a colour for a finish. See Stage 14 of the archived development plan (Notion).
  */
 const optionModelEffectSchema = z.object({
   nodes: z.array(z.string()),

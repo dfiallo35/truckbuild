@@ -9,7 +9,7 @@ request here to hang a ``Depends`` off -- and hand them to ``SyncModelsUseCase``
 A CLI and not an upload endpoint, deliberately: a Vercel function caps a request body at 4.5 MB
 and these files run 5-50 MB. This PUTs straight from an operator's machine to
 ``blob.vercel-storage.com``, so no Vercel function is ever in the byte path. See
-docs/stages/15-blob-storage-ingest.md.
+Stage 15 of the archived development plan (Notion).
 
 Run with ``python -m app.assets sync``, the same way ``python -m app.seed`` is run -- from a
 machine with the direct Neon URL and, here, ``BLOB_READ_WRITE_TOKEN``. ``--dry-run`` reports what

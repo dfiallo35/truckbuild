@@ -34,7 +34,7 @@ class OptionModelEffect(BaseEntity):
     present in the platform's GLB -- geometry, like a crew cab or a rooftop tent.
     ``material_target`` plus a colour recolors one instead of adding a mesh -- a finish, like
     satin black or desert tan. An option may use either, both, or neither.
-    See docs/stages/14-build-model-catalog.md for why one mechanism cannot serve both.
+    See Stage 14 of the archived development plan (Notion) for why one mechanism cannot serve both.
     """
 
     nodes: list[str] = []

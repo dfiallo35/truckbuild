@@ -24,7 +24,7 @@ and submits the finished build as a qualified lead.
 | **[Decisions](docs/decisions.md)** | Locked-in choices, accepted risks, and what was deliberately deferred |
 | **[Domain model](docs/domain-model.md)** | Entities, vocabulary, and the placeholder catalog |
 | **[Testing](docs/testing.md)** | What each layer tests, with which tool, and why the split is load-bearing |
-| **[Plan](docs/PLAN.md)** | The eight build stages, each with its own checkpoint in [`docs/stages/`](docs/stages/) |
+| **[Plan (archived)](https://app.notion.com/p/3ce774db73568150bcd2cb9e6b099239)** | The 18 build stages that shipped this app, each with its own checkpoint — moved to Notion once the staged build finished |
 
 New to the project? [Setup](docs/setup.md) to get it running, then
 [Architecture](docs/architecture.md) to understand the shape of it.

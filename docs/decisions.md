@@ -129,8 +129,9 @@ until it matters:
   gone as of Stage 17. `platform.hero_image` serves as the `<canvas>`'s poster while the GLB streams in
   *and* as the terminal state when WebGL is unavailable or the model fails to load, with one line of
   explanation — a static image that does not react to option toggles. Chosen deliberately over
-  maintaining two build views; see `docs/stages/16-3d-viewer.md`'s "The no-WebGL position, stated
-  plainly" for the reasoning and its stated recovery path.
+  maintaining two build views; see the Stage 16 page of the
+  [archived development plan](https://app.notion.com/p/3ce774db73568150bcd2cb9e6b099239)'s "The
+  no-WebGL position, stated plainly" for the reasoning and its stated recovery path.
 
 ## The 3D build view (Stages 14–17)
 

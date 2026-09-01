@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
     // Posters (`platform.hero_image`) served from Vercel Blob once that migration happens --
-    // see docs/stages/16-3d-viewer.md. The GLB itself is fetched directly by `scene.ts`, not
+    // see Stage 16 of the archived development plan (Notion). The GLB itself is fetched directly by `scene.ts`, not
     // through `next/image`, and needs no entry here.
     remotePatterns: [{ protocol: "https", hostname: "*.public.blob.vercel-storage.com" }],
   },

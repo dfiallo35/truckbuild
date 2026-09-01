@@ -43,7 +43,7 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      # The module and layer boundaries from docs/stages/08-modules-and-layers.md, as six
+      # The module and layer boundaries from Stage 8 of the archived development plan (Notion), as six
       # contracts in pyproject.toml. A contract nothing runs is a comment.
       - run: uv run lint-imports
       - run: uv run alembic upgrade head

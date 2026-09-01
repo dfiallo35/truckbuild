@@ -3,7 +3,7 @@
 Selected by ``app/assets.py`` whenever ``BLOB_READ_WRITE_TOKEN`` is set. No Vercel function sits
 in the byte path: this PUTs straight from an operator's machine to ``blob.vercel-storage.com``,
 which is the whole reason ``python -m app.assets sync`` is a CLI and not an upload endpoint --
-see docs/stages/15-blob-storage-ingest.md. Not exercised by the test suite, which runs entirely
+see Stage 15 of the archived development plan (Notion). Not exercised by the test suite, which runs entirely
 against ``LocalBlobStore``; docs/deploy.md covers creating the store and setting the token.
 """
 

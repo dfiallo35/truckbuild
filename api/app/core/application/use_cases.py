@@ -10,7 +10,7 @@ one of them writes a filter and a mapper rather than another loop over a session
 
 Sync, not async, unlike the reference repository: this service is sync throughout, and quote
 submission needs one transaction spanning the ref-collision retry. Going async is a change with
-its own risk, not a rider on a layering refactor -- see docs/stages/09-core-kernel.md.
+its own risk, not a rider on a layering refactor -- see Stage 9 of the archived development plan (Notion).
 """
 
 from app.core.application.dtos import (

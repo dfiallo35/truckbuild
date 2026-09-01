@@ -3,7 +3,7 @@
 The point of the whole stage is the last test here: a catalog naming a node or material its
 platform's GLB does not actually contain must fail the sync by construction, because nothing else
 would catch it -- the option would still price, still appear in the build sheet, and do nothing
-on screen. See docs/stages/15-blob-storage-ingest.md.
+on screen. See Stage 15 of the archived development plan (Notion).
 
 ``LocalBlobStore`` rather than a fake: it is itself the adapter ``docker compose``, CI and
 ``python -m app.assets sync`` fall back to whenever ``BLOB_READ_WRITE_TOKEN`` is unset, so
