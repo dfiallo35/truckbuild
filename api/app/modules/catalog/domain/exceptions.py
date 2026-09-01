@@ -49,9 +49,9 @@ class InvalidModelFileError(BaseError):
 
 class ModelTooLargeError(BaseError):
     """A ``.glb`` over ``Settings.model_max_bytes`` -- refused before it is read, let alone
-    uploaded. See Stage 15 of the archived development plan (Notion) for why there is a cap at all: a Vercel
-    function caps a request body at 4.5 MB, which is why this is a CLI rather than an endpoint,
-    but the sync still needs its own ceiling against a mistakenly huge export."""
+    uploaded. See Stage 15 of the archived development plan (Notion) for why there is a cap at
+    all: a Vercel function caps a request body at 4.5 MB, which is why this is a CLI rather than
+    an endpoint, but the sync still needs its own ceiling against a mistakenly huge export."""
 
     status_code = 422
     code = "model_too_large"

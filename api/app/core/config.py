@@ -54,9 +54,9 @@ class Settings(BaseSettings):
     environment: str = Field(default="development")
 
     # Vercel Blob, for the model GLBs `python -m app.assets sync` uploads (see
-    # app/core/infrastructure/blob/ and Stage 15 of the archived development plan (Notion)). Unset selects
-    # `LocalBlobStore` instead, writing under web/public/models/ -- which is what docker compose,
-    # CI and the test suite use, so none of them need this credential.
+    # app/core/infrastructure/blob/ and Stage 15 of the archived development plan (Notion)).
+    # Unset selects `LocalBlobStore` instead, writing under web/public/models/ -- which is what
+    # docker compose, CI and the test suite use, so none of them need this credential.
     blob_read_write_token: str | None = Field(default=None)
     blob_path_prefix: str = Field(default="models")
     model_max_bytes: int = Field(default=33_554_432)  # 32 MiB
