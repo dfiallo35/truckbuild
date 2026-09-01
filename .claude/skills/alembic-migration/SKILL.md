@@ -7,8 +7,9 @@ description: Generating, reviewing, and applying Alembic migrations in TruckBuil
 
 ## Why generated migrations get reviewed here
 
-`docs/stages/01-backend-catalog.md` states it directly: autogenerate gets enums and constraints wrong
-often enough that reviewing the output is not optional. This is not distrust of the tool — autogenerate
+This project learned it directly, back when the catalog schema was first built: autogenerate gets
+enums and constraints wrong often enough that reviewing the output is not optional. This is not
+distrust of the tool — autogenerate
 compares model metadata against the database and is genuinely good at columns and tables. It is
 unreliable at exactly the things this schema depends on:
 

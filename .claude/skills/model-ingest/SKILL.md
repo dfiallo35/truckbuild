@@ -11,7 +11,8 @@ description: Getting a platform's 3D build model — or a new option's geometry/
 are declared — that half is content, versioned like everything else in the catalog. But the GLB
 itself is a large binary (5–50 MB) that does not belong in git and cannot go through a normal HTTP
 request: **a Vercel function caps a request body at 4.5 MB**, which is why there is no upload
-endpoint and never will be. See `docs/stages/15-blob-storage-ingest.md`.
+endpoint and never will be. See the Stage 15 page of the
+[archived development plan](https://app.notion.com/p/3ce774db73568150bcd2cb9e6b099239) in Notion.
 
 So the model reaches the site through a second, parallel pipeline to the one `catalog-change`
 describes, with its own CLI:

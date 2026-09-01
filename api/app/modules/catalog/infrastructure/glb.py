@@ -4,7 +4,7 @@ A GLB is a 12-byte header (magic, version, total length) followed by chunks, the
 is always the glTF JSON document. Getting at ``nodes[].name`` and ``materials[].name`` is
 ``struct`` plus ``json`` over that first chunk -- **stdlib only, no new dependency** -- and is all
 Stage 15's validation needs: whether the mesh or material an option's ``model_effect`` names is
-actually in the file, not what it looks like. See docs/stages/15-blob-storage-ingest.md.
+actually in the file, not what it looks like. See Stage 15 of the archived development plan (Notion).
 """
 
 from __future__ import annotations

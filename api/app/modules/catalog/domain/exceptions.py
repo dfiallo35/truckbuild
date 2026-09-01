@@ -49,7 +49,7 @@ class InvalidModelFileError(BaseError):
 
 class ModelTooLargeError(BaseError):
     """A ``.glb`` over ``Settings.model_max_bytes`` -- refused before it is read, let alone
-    uploaded. See docs/stages/15-blob-storage-ingest.md for why there is a cap at all: a Vercel
+    uploaded. See Stage 15 of the archived development plan (Notion) for why there is a cap at all: a Vercel
     function caps a request body at 4.5 MB, which is why this is a CLI rather than an endpoint,
     but the sync still needs its own ceiling against a mistakenly huge export."""
 
@@ -66,7 +66,7 @@ class ModelContentMismatchError(BaseError):
     -- the validation Stage 15 exists for. Refuses the *whole* sync, not just this platform: a
     mismatch here means an option that still prices and still appears in the build sheet does
     nothing on screen, and nothing else would catch it. See
-    docs/stages/15-blob-storage-ingest.md.
+    Stage 15 of the archived development plan (Notion).
     """
 
     status_code = 422

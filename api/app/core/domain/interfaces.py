@@ -83,7 +83,7 @@ class IBlobStore(ABC):
 
     Beside ``IRateLimiter`` rather than in ``catalog``: ``put``/``delete``/``exists`` name no
     module's vocabulary, which is CLAUDE.md's rule for what belongs in ``core``. Today's only
-    caller is ``python -m app.assets sync`` (docs/stages/15-blob-storage-ingest.md), writing GLB
+    caller is ``python -m app.assets sync`` (Stage 15 of the archived development plan (Notion)), writing GLB
     truck models; a second caller reaches for the same port rather than inventing its own.
     """
 

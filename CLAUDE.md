@@ -102,9 +102,8 @@ outside `api/`:
 `api/app/` is one FastAPI app assembled at one composition root (`main.py`) out of feature modules under
 `app/modules/`, each carrying its own layers over a shared `app/core/`. One process, one database, one
 `SQLModel.metadata` — nothing is deployed independently. Seven rules, all checked by
-`uv run lint-imports` (contracts in `api/pyproject.toml`, rationale in
-`docs/stages/08-modules-and-layers.md`, `docs/stages/09-core-kernel.md`,
-`docs/stages/10-catalog-slice.md` and `docs/stages/11-quotes-slice.md`):
+`uv run lint-imports` (contracts in `api/pyproject.toml`, rationale in the Stage 8–11 pages of the
+[archived development plan](https://app.notion.com/p/3ce774db73568150bcd2cb9e6b099239) in Notion):
 
 - **Layers, inside every module:** `presentation : infrastructure → application → domain`. The two
   adapters are siblings and neither may import the other; `domain` imports nothing.
@@ -160,8 +159,8 @@ adapted from [`dfiallo35/property-management`](https://github.com/dfiallo35/prop
 `_gte` / `_lte` suffixes are load-bearing: `BaseRepositoryPostgres.filter` keys off exactly those
 names, so a field called `created_after` is silently ignored. The named deviations from the
 reference repo — FastAPI `Depends` rather than `dependency_injector`, sync rather than async,
-`limit`/`offset` rather than `page`/`size`, SQLModel tables, no i18n — are in
-`docs/stages/09-core-kernel.md`.
+`limit`/`offset` rather than `page`/`size`, SQLModel tables, no i18n — are in the Stage 9 page of the
+[archived development plan](https://app.notion.com/p/3ce774db73568150bcd2cb9e6b099239) in Notion.
 
 **`catalog` and `quotes` are the finished shape; `admin` is not there yet:**
 
@@ -220,14 +219,16 @@ CI-equivalent sweep, then open the PR with the `open-pr` skill. Branch off a fre
 commit to `main` directly. If an open PR already covers the same concern, add a commit to it instead
 of opening a second one that will conflict.
 
-The build is split into staged, independently reviewable steps in `docs/PLAN.md`, each with its own
-file under `docs/stages/` containing steps, a runnable checkpoint, and done-when criteria. **Read the current
-stage's file before starting work on it**, and don't start a stage until the previous checkpoint passes.
-Stages 0–11 are complete. Stage 8 moved `api/` into the modular-monolith layout described above,
-stage 9 built the `core` kernel every module extends, and stages 10 and 11 moved `catalog` and
-`quotes` onto it; stage 12 does the same for `admin`, then seeding, web and docs (13). Every one of
-those stages keeps the wire contract byte-identical and diffs against the golden capture in
-`api/tests/golden/` to prove it. The site is deployed at <https://truckbuild.vercel.app>
+The build was carried out as 18 staged, independently reviewable steps (0–17), each with its own
+substeps, a runnable checkpoint, and done-when criteria — all complete. Stage 8 moved `api/` into the
+modular-monolith layout described above, stage 9 built the `core` kernel every module extends, stages
+10–12 moved `catalog`, `quotes` and `admin` onto it, stage 13 closed out seeding, web and docs, and
+stages 14–17 replaced the configurator's 2D layer composite with the 3D build view described below.
+Every one of those stages kept the wire contract byte-identical and diffed against the golden capture
+in `api/tests/golden/` to prove it. The staged plan (`docs/PLAN.md` and `docs/stages/`) has been
+archived to Notion now that the build it describes is finished:
+[TruckBuild — Development Plan](https://app.notion.com/p/3ce774db73568150bcd2cb9e6b099239). The site
+is deployed at <https://truckbuild.vercel.app>
 with the API at <https://truckbuild-api.vercel.app>; see `docs/deploy.md`, which is the runbook
 and also records why the API runs as a Vercel Python function rather than the container
 `api/render.yaml` still describes.

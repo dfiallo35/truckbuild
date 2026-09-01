@@ -1,21 +1,23 @@
 ---
 name: stage-checkpoint
-description: Runs a TruckBuild stage's checkpoint from docs/stages/ and reports pass or fail against real command output, then updates the stage status only once it genuinely passes. Use this when asked to verify, check, close out, or sign off a stage, when asked whether a stage is done or what to work on next, before starting the next stage, and before opening a PR for stage work. Also use it as the CI-equivalent sweep — the lint, format-check, test, and build commands GitHub Actions runs — since a stage cannot be complete while CI would be red.
+description: Runs TruckBuild's CI-equivalent sweep — the lint, format-check, test, and build commands GitHub Actions runs — and reports pass or fail against real command output. Use this before opening a PR for any work in this repo, or when asked to verify that the tree is CI-green. Also covers the historical stage-verification workflow used while the app was being built in staged steps (0–17, all complete, archived to Notion), for reference if staged development ever resumes here.
 ---
 
-# Verifying a stage
+# Verifying the tree (and, historically, a stage)
 
 ## How this project is organized
 
-The build is twelve staged, independently reviewable steps (0–7 built the app, 8–11 restructure the API). `docs/PLAN.md` is the index and carries the
-status table; each `docs/stages/NN-*.md` file has steps, a runnable **Checkpoint**, and **Done when**
-criteria. A stage does not begin until the previous checkpoint passes — that gate is the whole point of
-the structure, and skipping it moves the failure later where it costs more.
+The app was originally built as eighteen staged, independently reviewable steps (0–7 built the app,
+8–13 restructured the API into a modular monolith, 14–17 replaced the 2D configurator viewer with a
+3D one). All eighteen are complete, and the plan that drove them — `docs/PLAN.md` and `docs/stages/`,
+each stage's steps, runnable **Checkpoint**, and **Done when** criteria — has been archived to Notion:
+[TruckBuild — Development Plan](https://app.notion.com/p/3ce774db73568150bcd2cb9e6b099239). Ordinary
+feature work in this repo today isn't staged; use the CI-equivalent sweep below before any PR.
 
-## Workflow
+If staged development resumes (a new `docs/stages/NN-*.md` is added for a large, sequenced piece of
+work), the historical workflow was:
 
-1. **Identify the stage.** If not told which, read the status table in `docs/PLAN.md` and take the
-   first one not marked complete.
+1. **Identify the stage.** Read the status table in the plan and take the first one not marked complete.
 2. **Read that stage's file.** The checkpoint commands live there and differ per stage — don't work
    from memory or from this file's examples.
 3. **Bring the stack up** if the checkpoint needs it:
@@ -86,15 +88,12 @@ Report what you actually ran and what it actually printed. If something failed, 
 rather than describing it as nearly passing — the value of a checkpoint is entirely in its being an
 honest gate, and a stage waved through is a stage whose problems surface during the next one.
 
-Only after everything passes, update both places that record status:
-
-- the row in the `docs/PLAN.md` stage table
-- the header of the stage file, matching the existing convention:
-  `> **Status: complete.** Checkpoint verified YYYY-MM-DD.`
-
-If the stage surfaced something worth remembering — a tool that behaved unexpectedly, a workaround
-that was not obvious — add it under a "Notes from the build" heading in the stage file. Stage 0 does
-this, and those notes are the reason the port-5433 and BuildKit decisions are still understandable.
+For staged work (historical, or if it resumes), only after everything passes, update both places that
+record status: the row in the plan's stage table and the header of the stage file, matching the
+existing convention (`> **Status: complete.** Checkpoint verified YYYY-MM-DD.`). If the stage surfaced
+something worth remembering — a tool that behaved unexpectedly, a workaround that was not obvious —
+add it under a "Notes from the build" heading in the stage file. Stage 0's page in the archived plan
+does this, and those notes are the reason the port-5433 and BuildKit decisions are still understandable.
 
 ## Then open the PR
 

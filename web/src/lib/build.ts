@@ -5,7 +5,7 @@ import type { RuleablePlatform } from "@/lib/rules";
 /**
  * A build is a platform plus a set of selected option slugs, and it lives in the URL query
  * string (`?o=slug-a,slug-b`). That is what makes a build shareable, refresh-safe and free of
- * any database round trip -- see docs/stages/04-configurator.md.
+ * any database round trip -- see Stage 4 of the archived development plan (Notion).
  *
  * Everything here treats the query string as untrusted: it may name an option that was renamed
  * last quarter, two options from the same single-select group, or nothing at all. A shared URL

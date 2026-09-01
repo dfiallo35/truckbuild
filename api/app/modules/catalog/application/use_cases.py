@@ -182,7 +182,7 @@ class SyncModelsUseCase(BaseUseCase):
     platform still leaves the first two untouched -- **the whole sync refuses**, not just the one
     platform. Without this check a node renamed in Blender is an option that still prices, still
     appears in the build sheet, and does nothing on screen, and no test would fail. See
-    docs/stages/15-blob-storage-ingest.md.
+    Stage 15 of the archived development plan (Notion).
     """
 
     def __init__(
