@@ -80,6 +80,30 @@ export function resolveSelection(
 
 const COLOR_LERP_SECONDS = 0.25;
 
+/**
+ * The camera framing each platform pins in `catalog.yaml` -- orbit, distance, target height -- is
+ * authored against a wide frame, and a `PerspectiveCamera`'s field of view is the vertical one. So
+ * on a frame narrower than `FRAMING_ASPECT` a fixed camera crops the build sideways, which is the
+ * axis a truck is long on: the ends of it go first.
+ *
+ * Since the build view fills its pane rather than sitting in a 16:9 box inside it, that shape is
+ * whatever the layout hands over -- including the tall, narrow column the three-pane grid leaves
+ * between the step rail and the option panel on a small laptop. So the framing is a distance, not
+ * a lens: below the reference aspect the camera backs off by exactly the factor that holds the
+ * visible width constant. Widening the field of view instead would reach a fisheye long before it
+ * reached the narrowest column the layout can produce, and the platform's authored framing is a
+ * composition, not just a size -- a distance scale keeps it, where a focal-length change would not.
+ */
+const FRAMING_FOV_DEG = 35;
+const FRAMING_ASPECT = 16 / 9;
+const FAR_PLANE_M = 100;
+const FOG_DENSITY = 0.035;
+
+export function framingScaleForAspect(aspect: number): number {
+  if (!Number.isFinite(aspect) || aspect <= 0) return 1;
+  return aspect >= FRAMING_ASPECT ? 1 : FRAMING_ASPECT / aspect;
+}
+
 function readCssColor(name: string, fallback: string): THREE.Color {
   if (typeof window === "undefined") return new THREE.Color(fallback);
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -117,7 +141,8 @@ export async function createScene(
   canvas.addEventListener("webglcontextlost", onContextLost);
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(readCssColor("--color-canvas", "#0b0b0c").getHex(), 0.035);
+  const fog = new THREE.FogExp2(readCssColor("--color-canvas", "#0b0b0c").getHex(), FOG_DENSITY);
+  scene.fog = fog;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -133,7 +158,7 @@ export async function createScene(
   rim.position.set(-5, 3, -6);
   scene.add(rim);
 
-  const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+  const camera = new THREE.PerspectiveCamera(FRAMING_FOV_DEG, 1, 0.1, FAR_PLANE_M);
   const target = new THREE.Vector3(0, model.cameraTargetYM, 0);
   const orbitRad = THREE.MathUtils.degToRad(model.cameraOrbitDeg);
   camera.position.set(
@@ -265,12 +290,42 @@ export async function createScene(
 
   applySelection([]);
 
+  // How far the camera has been pulled back from the authored framing to fit the frame it was
+  // given. Held across resizes so a visitor's own zoom is rescaled rather than thrown away.
+  let framingScale = 1;
+
   function resize() {
     const width = canvas.clientWidth || 1;
     const height = canvas.clientHeight || 1;
+    // Re-read on every resize rather than only at construction: a browser zoom changes
+    // `devicePixelRatio` without changing the CSS box, and a drawing buffer left at the old
+    // ratio is what makes a zoomed page render soft.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+
+    const nextScale = framingScaleForAspect(camera.aspect);
+    if (nextScale === framingScale) return;
+
+    // Dolly along the current view direction rather than assigning a distance, so an orbit or a
+    // zoom the visitor has already made survives the reframe in proportion.
+    camera.position
+      .sub(controls.target)
+      .multiplyScalar(nextScale / framingScale)
+      .add(controls.target);
+    framingScale = nextScale;
+
+    controls.minDistance = model.cameraDistanceM * 0.4 * framingScale;
+    controls.maxDistance = model.cameraDistanceM * 2 * framingScale;
+    controls.update();
+
+    // Both of these are distances too, and neither survives a camera that moved without them:
+    // the far plane would clip the build away, and the fog -- tuned to sit a few metres behind
+    // it -- would swallow it whole.
+    camera.far = FAR_PLANE_M * framingScale;
+    camera.updateProjectionMatrix();
+    fog.density = FOG_DENSITY / framingScale;
   }
   resize();
 

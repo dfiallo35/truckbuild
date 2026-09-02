@@ -71,12 +71,18 @@ export function BuildViewer({ platform, selected }: { platform: Platform; select
   return (
     <div
       data-testid="build-viewer"
-      className="relative flex min-h-0 items-center justify-center overflow-hidden px-4 py-6 md:px-8"
+      className="relative flex min-h-0 items-center justify-center overflow-hidden px-4 py-6 md:p-0"
     >
+      {/* Two shapes, one element. Where the page scrolls -- a phone -- the frame has to carry its
+          own height, so it is a 16:9 box in the flow. Where the layout is a fixed-height grid it
+          fills its cell edge to edge instead: a smaller box inside a larger pane is an invisible
+          window until someone zooms the model into its edges and finds it, which is exactly the
+          crop this used to produce. `scene.ts` reframes to whatever aspect the cell turns out to
+          be, so filling a tall, narrow column does not cost the build its bumpers. */}
       <div
         role="img"
         aria-label={description}
-        className="relative aspect-[16/9] w-full max-w-4xl self-center"
+        className="relative aspect-[16/9] w-full max-w-4xl self-center md:aspect-auto md:h-full md:max-w-none"
       >
         {platform.hero_image ? (
           <Image
