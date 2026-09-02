@@ -14,7 +14,13 @@ from app.core.config import Settings
 from app.core.domain.interfaces import IBlobStore, StoredBlob
 
 BASE_URL = "https://blob.vercel-storage.com"
-TIMEOUT_SECONDS = 30.0
+# Connect and read stay short, so a dead endpoint or a hung response still fails fast. The write
+# budget is the one that has to be generous: ``put`` streams the whole GLB in the request body,
+# and this is the service that exists to move files docs/deploy.md sizes at 5-50 MB. A single
+# 30 s budget covered all four phases, which was not enough to upload a 1.5 MB model on an
+# ordinary uplink -- a sync got two platforms up and then raised ``httpx.WriteTimeout`` on the
+# third, leaving the catalog half-updated and the cache never revalidated.
+TIMEOUT = httpx.Timeout(connect=10.0, read=60.0, write=600.0, pool=10.0)
 
 # Safe only because every path this service uploads to is content-addressed (the sha256 of the
 # bytes, truncated -- see SyncModelsUseCase): the bytes at a given path never change, so a client
@@ -38,7 +44,7 @@ class VercelBlobStore(IBlobStore):
                 "content-type": content_type,
                 "cache-control": CACHE_CONTROL,
             },
-            timeout=TIMEOUT_SECONDS,
+            timeout=TIMEOUT,
         )
         response.raise_for_status()
         url = response.json()["url"]
@@ -49,12 +55,10 @@ class VercelBlobStore(IBlobStore):
             BASE_URL,
             params={"url": f"{BASE_URL}/{path}"},
             headers=self._headers(),
-            timeout=TIMEOUT_SECONDS,
+            timeout=TIMEOUT,
         )
         response.raise_for_status()
 
     def exists(self, path: str) -> bool:
-        response = httpx.head(
-            f"{BASE_URL}/{path}", headers=self._headers(), timeout=TIMEOUT_SECONDS
-        )
+        response = httpx.head(f"{BASE_URL}/{path}", headers=self._headers(), timeout=TIMEOUT)
         return response.status_code == 200
