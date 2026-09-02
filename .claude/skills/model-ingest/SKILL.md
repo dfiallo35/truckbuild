@@ -98,6 +98,31 @@ re-syncing reports `unchanged` rather than churning a new blob. This is scaffold
 the pipeline, not a substitute for the real asset: when a modeller's GLB lands, it replaces the
 file of the same name and the tool goes back to being how you test the ingest chain without one.
 
+### The Blender build
+
+`api/tools/refine_models_blender.py` writes the same three platforms as recognisable trucks
+rather than stand-ins — conventional cab, hood, raked windscreen, arched fenders, lathed tyres on
+spoked rims, and a rear body per platform, matched to `web/public/images/<slug>/hero.jpg`. It
+needs Blender (5.2 here) and produces 1.5–2 MB GLBs of 48–66k triangles, against the placeholder's
+110–130 KB:
+
+```bash
+cd api && blender -b -P tools/refine_models_blender.py -- seed/models
+```
+
+It also runs through the Blender MCP server by `exec`-ing the file from `execute_blender_code` —
+that server refuses to start in background mode, so it needs a GUI Blender or `xvfb-run -a
+blender`, and the glTF exporter needs a context override the file already applies.
+
+Two things to know before reaching for it:
+
+- **It re-derives nothing about the contract.** `check_contract` diffs its node set against
+  `make_placeholder_models`'s and exits rather than exporting a GLB the sync would refuse, so that
+  file stays the one place the catalog's node names are mirrored.
+- **A re-run always uploads.** Blender's glTF exporter is not byte-reproducible — two consecutive
+  runs give identical-size, different-byte GLBs — so unlike the placeholder generator, rebuilding
+  and re-syncing never reports `unchanged`.
+
 ## The gotcha that breaks an unrelated test
 
 **`python -m app.assets sync` writes to the same Postgres `pytest` reads.** There is no separate test
