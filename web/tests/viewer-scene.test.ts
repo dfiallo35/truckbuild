@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveSelection, type ViewerEffect } from "@/lib/viewer/scene";
+import { framingScaleForAspect, resolveSelection, type ViewerEffect } from "@/lib/viewer/scene";
 
 /**
  * `resolveSelection`'s pure half: no WebGL, no canvas -- just which node names a selection
@@ -92,5 +92,41 @@ describe("resolveSelection", () => {
     // here, the one declared later in the effect map.
     const { materialOverrides } = resolveSelection(EFFECTS, ["paint-black", "paint-tan"]);
     expect(materialOverrides.get("body_paint")?.baseColorHex).toBe("#c2a374");
+  });
+});
+
+/**
+ * The build view fills its pane rather than sitting in a 16:9 box inside it, so the frame's aspect
+ * is now whatever the layout hands over. `framingScaleForAspect` is what keeps a platform's
+ * authored framing meaning the same thing in a pane taller than it is wide -- the axis a truck is
+ * long on is the one a camera at a fixed distance crops first.
+ */
+describe("framingScaleForAspect", () => {
+  // What the scale is for: the visible width at the camera's distance, which should not move.
+  const visibleWidth = (aspect: number) => framingScaleForAspect(aspect) * aspect;
+
+  it("leaves the authored framing alone on a frame at least as wide as it was authored for", () => {
+    expect(framingScaleForAspect(16 / 9)).toBe(1);
+    expect(framingScaleForAspect(21 / 9)).toBe(1);
+  });
+
+  it("holds the visible width as the frame narrows", () => {
+    const reference = visibleWidth(16 / 9);
+    expect(visibleWidth(4 / 3)).toBeCloseTo(reference, 10);
+    expect(visibleWidth(1)).toBeCloseTo(reference, 10);
+    // The narrowest column the three-pane grid produces on a small laptop.
+    expect(visibleWidth(0.3)).toBeCloseTo(reference, 10);
+  });
+
+  it("only ever backs the camera off, never pushes it in", () => {
+    for (const aspect of [0.3, 1, 4 / 3, 16 / 9, 3]) {
+      expect(framingScaleForAspect(aspect)).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("falls back to the authored framing for a frame with no measurable aspect", () => {
+    // A hidden or zero-height pane, which is what a resize during teardown hands over.
+    expect(framingScaleForAspect(0)).toBe(1);
+    expect(framingScaleForAspect(Number.NaN)).toBe(1);
   });
 });
